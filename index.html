@@ -788,6 +788,8 @@
             }
 
             container.innerHTML = '';
+            document.getElementById('dayWiseBtn').classList.remove('active');
+            document.getElementById('subjectWiseBtn').classList.add('active');
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
@@ -849,6 +851,8 @@
             }
             
             container.innerHTML = '';
+            document.getElementById('subjectWiseBtn').classList.remove('active');
+            document.getElementById('dayWiseBtn').classList.add('active');
             
             const today = new Date();
             const daysToShow = 7;
