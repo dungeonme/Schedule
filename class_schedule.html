@@ -3,1320 +3,462 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My IIM Shillong Schedule</title>
+    <title>Class Schedule</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
         body {
-            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-            min-height: 100vh;
-            padding: 20px 10px;
-            color: #ecf0f1;
+            font-family: 'Poppins', sans-serif;
+            background-color: #F0F4F8; /* A cool, light blue-gray background */
         }
-
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
         }
-
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 15px; /* Reduced margin for a cleaner look */
-        }
-
-        .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 5px;
-            text-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .current-time {
-            font-size: 1em;
-            opacity: 0.9;
-        }
-        
-        .status-text {
-            text-align: center;
-            font-weight: bold;
-            font-size: 1em;
-            margin-bottom: 20px;
-        }
-
-        .status-text.connected {
-            color: #2ecc71;
-        }
-
-        .status-text.disconnected {
-            color: #e74c3c;
-        }
-
-
-        .day-section {
-            background: rgba(44, 62, 80, 0.9);
-            border-radius: 18px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            backdrop-filter: blur(10px);
-            transition: transform 0.2s ease-in-out;
-        }
-
-        .day-section:hover {
-            transform: translateY(-5px);
-        }
-
-        .day-title {
-            font-size: 1.4em;
-            color: #ecf0f1;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #7f8c8d;
-            padding-bottom: 8px;
+        .card-title {
             font-weight: 600;
+            color: #2D3748; /* A dark, professional blue */
         }
-
         .class-card {
-            background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+            background-color: #4A5568; /* Solid, high-contrast background */
             color: white;
-            padding: 18px;
-            border-radius: 14px;
-            margin-bottom: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid #4A90E2; /* Accent color for visual flair */
         }
-
-        .class-card:hover {
-            transform: scale(1.02);
-            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-        }
-
-        .class-time {
-            font-size: 1em;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-
-        .class-name {
-            font-size: 1.2em;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-
-        .class-details {
-            opacity: 0.9;
-            font-size: 0.9em;
-        }
-
-        .progress-bar-container {
-            background-color: #5d6d7e;
-            border-radius: 10px;
-            margin-bottom: 5px; /* Adjusted margin */
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-            position: relative;
-            padding: 5px;
-        }
-
-        .progress-bar {
-            height: 25px;
-            border-radius: 8px;
-            background: linear-gradient(90deg, #3498db, #2980b9);
-            transition: width 0.5s ease-in-out;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.9em;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
-        }
-
-        .progress-label {
-            padding: 0 10px;
-            white-space: nowrap;
-        }
-
-        .next-class-info {
-            font-size: 0.9em;
-            color: #bdc3c7;
-            text-align: center;
-            margin-bottom: 15px; /* Added spacing */
-        }
-
-
-        .progress-card .class-name {
-            font-size: 1.1em;
-        }
-
-        .progress-card .class-details {
-            font-weight: 500;
-        }
-
-        .no-classes, .loading {
-            text-align: center;
-            color: #bdc3c7;
-            font-style: italic;
-            padding: 30px 10px;
-            font-size: 1em;
-        }
-        
-        .no-classes.success {
-            color: #2ecc71;
-            font-style: normal;
-            font-weight: bold;
-        }
-
-        .error {
-            background: #e74c3c;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 10px 0;
-            border-left: 4px solid #c0392b;
-        }
-
         .btn {
-            background: linear-gradient(45deg, #3498db, #2980b9);
+            background-color: #4A90E2;
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 10px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
             cursor: pointer;
-            font-size: 1em;
-            font-weight: 600;
-            transition: transform 0.2s ease-in-out, box-shadow 0.2s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            font-weight: 500;
+            transition: background-color 0.2s;
         }
-
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            background-color: #357ABD;
         }
-        
-        .btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        .btn.active {
+            background-color: #2D3748;
         }
-
-        .upcoming-controls .btn.active {
-            background: linear-gradient(45deg, #2980b9, #3498db);
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
-            transform: translateY(0);
+        .btn.secondary {
+            background-color: #E2E8F0;
+            color: #2D3748;
         }
-        .upcoming-controls .btn:not(.active) {
-            opacity: 0.7;
-            background: linear-gradient(45deg, #5d6d7e, #7f8c8d);
+        .btn.secondary:hover {
+            background-color: #CBD5E0;
         }
-
-        .search-section {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .date-input, .class-select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #5d6d7e;
-            border-radius: 10px;
-            font-size: 1em;
-            background-color: #34495e;
-            color: white;
-            transition: border-color 0.3s;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        .date-input:focus, .class-select:focus {
-            border-color: #3498db;
-            outline: none;
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
-        }
-
-        .class-select {
-            height: 200px;
-            overflow-y: auto;
-            margin-bottom: 15px;
-        }
-
-        .refresh-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #e67e22;
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4A90E2;
             border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            font-size: 1.1em;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
         }
-
-        .refresh-btn:hover {
-            background: #d35400;
-            transform: scale(1.1);
-        }
-        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
-        .spinning {
-            animation: spin 1s linear infinite;
-        }
-
-        .error-table, .upcoming-classes-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            background-color: #34495e;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .error-table th, .error-table td, .upcoming-classes-table th, .upcoming-classes-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #5d6d7e;
-            color: #ecf0f1;
-        }
-        
-        .error-table th, .upcoming-classes-table th {
-            background-color: #2c3e50;
-            color: #bdc3c7;
-            font-weight: 600;
-        }
-
-        .error-table tr:last-child td, .upcoming-classes-table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        /* New styling for less prominent error section */
-        .unimportant-error-title {
-            font-size: 1.2em;
-            color: #bdc3c7;
-            border-bottom: 1px solid #7f8c8d;
-        }
-
-        /* --- New UI for Subject Selection (Search & Tags) --- */
-        .search-container {
-            position: relative;
-            margin-bottom: 15px;
-        }
-        
-        .subject-search-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #5d6d7e;
-            border-radius: 10px;
-            font-size: 1em;
-            background-color: #34495e;
-            color: white;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-        
-        .subject-search-input:focus {
-            border-color: #3498db;
-            outline: none;
-            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
-        }
-        
-        .search-results-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            background-color: #34495e;
-            border: 1px solid #5d6d7e;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            z-index: 100;
-            display: none; /* Initially hidden */
-        }
-        
-        .search-results-list.active {
-            display: block;
-        }
-
-        .search-result-item {
-            padding: 12px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            color: #ecf0f1;
-        }
-        
-        .search-result-item:hover {
-            background-color: #5d6d7e;
-        }
-        
-        .selected-tags-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 10px;
-        }
-        
-        .selected-tag {
-            background-color: #3498db;
-            color: white;
-            padding: 8px 12px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            font-size: 0.9em;
-            white-space: nowrap;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .selected-tag .remove-tag {
-            margin-left: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1.1em;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-        
-        .selected-tag .remove-tag:hover {
-            color: #e74c3c;
-        }
-
-        .weekly-schedule-day {
-            background: rgba(44, 62, 80, 0.9);
-            border-radius: 18px;
-            padding: 15px;
-            margin-bottom: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        }
-        
-        .weekly-schedule-day h3 {
-            color: #ecf0f1;
-            font-size: 1.1em;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #7f8c8d;
-            padding-bottom: 5px;
-        }
-
-        .upcoming-controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .upcoming-controls .btn {
-            flex-grow: 1;
-        }
-
-
-        /* Responsive adjustments for phones */
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-
-            .header h1 {
-                font-size: 2em;
-            }
-
-            .day-title {
-                font-size: 1.2em;
-            }
-
-            .btn, .date-input, .subject-search-input, .search-result-item {
-                font-size: 0.9em;
-            }
-            
-            .search-section {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 15px;
-            }
-            
-            .search-section .btn {
-                width: 100%;
-            }
-
-            .refresh-btn {
-                width: 45px;
-                height: 45px;
-                font-size: 1.1em;
-            }
-        }
-
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>📚 My IIM Shillong Schedule</h1>
-            <p id="connectionStatus" class="status-text connected">Connected</p>
-        </div>
+<body class="text-gray-800">
 
-        <div id="scheduleContent">
+    <div class="container mx-auto p-4 md:p-6 max-w-4xl">
+        <!-- Header -->
+        <header class="relative text-center mb-8 py-4">
+            <!-- Home Button -->
+            <a href="./index.html" class="absolute top-1/2 -translate-y-1/2 left-0 bg-gray-200 text-gray-700 w-12 h-12 rounded-full inline-flex items-center justify-center text-2xl hover:bg-gray-300 transition-colors" title="Back to Home">
+                🏠
+            </a>
+            <h1 class="text-4xl md:text-5xl font-bold text-[#2D3748]">Class Schedule 📚</h1>
+            <p id="connectionStatus" class="text-gray-500 mt-2">Connecting...</p>
+        </header>
+
+        <!-- Main Content -->
+        <main id="scheduleContent" class="flex flex-col gap-6">
             
-            <div class="day-section">
-                <h2 class="day-title">✅ Select Your Classes</h2>
-                <div class="search-container">
-                    <input type="text" id="subjectSearchInput" class="subject-search-input" placeholder="Search for a subject...">
-                    <div id="searchResults" class="search-results-list"></div>
+            <!-- Select Your Classes -->
+            <div class="card">
+                <h2 class="card-title text-xl mb-4">✅ My Subjects</h2>
+                <div class="relative mb-4">
+                    <input type="text" id="subjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add a subject...">
+                    <div id="searchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
                 </div>
-                <div id="selectedTagsContainer" class="selected-tags-container"></div>
-                
-                <button class="btn" onclick="updateEnrolledClassesAndRefresh()" style="margin-top: 15px;">Update Schedule</button>
+                <div id="selectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
+                <button id="updateScheduleBtn" class="btn w-full">Update My Schedule</button>
             </div>
 
-            <div class="day-section">
-                <h2 class="day-title">📅 Today - <span id="todayDate"></span></h2>
-                <div id="todayClasses" class="loading">Loading today's classes...</div>
-            </div>
-
-            <div class="day-section">
-                <h2 class="day-title">⏭️ Tomorrow - <span id="tomorrowDate"></span></h2>
-                <div id="tomorrowClasses" class="loading">Loading tomorrow's classes...</div>
-            </div>
-            
-            <!-- Combined Upcoming Classes Section -->
-            <div class="day-section">
-                <h2 class="day-title">➡️ Upcoming Classes</h2>
-                <div class="upcoming-controls">
-                    <button id="dayWiseBtn" class="btn active" onclick="renderUpcomingView('dayWise')">Day-wise</button>
-                    <button id="subjectWiseBtn" class="btn" onclick="renderUpcomingView('subjectWise')">Subject-wise</button>
+            <!-- Today & Tomorrow -->
+            <section class="grid md:grid-cols-2 gap-6">
+                <div class="card">
+                    <h2 class="card-title text-xl mb-4">📅 Today <span class="text-gray-400 font-normal text-sm" id="todayDate"></span></h2>
+                    <div id="todayClasses"><div class="loader"></div></div>
                 </div>
-                <div id="upcomingClassesContainer" class="loading">Select a view to see your upcoming schedule.</div>
-            </div>
-
-            <div class="day-section">
-                <h2 class="day-title">🔍 Search by Date</h2>
-                <div class="search-section">
-                    <input type="date" id="datePicker" class="date-input">
-                    <button class="btn" onclick="fetchClassesForDate()">Show Schedule</button>
+                <div class="card">
+                    <h2 class="card-title text-xl mb-4">⏭️ Tomorrow <span class="text-gray-400 font-normal text-sm" id="tomorrowDate"></span></h2>
+                    <div id="tomorrowClasses"><div class="loader"></div></div>
                 </div>
-                <div id="selectedDateClasses"></div>
+            </section>
+
+            <!-- Upcoming Classes -->
+            <div class="card">
+                <h2 class="card-title text-xl mb-4">➡️ Upcoming Schedule</h2>
+                <div class="flex gap-2 mb-4">
+                    <button id="dayWiseBtn" class="btn active flex-grow">Day-wise</button>
+                    <button id="subjectWiseBtn" class="btn secondary flex-grow">Subject-wise</button>
+                </div>
+                <div id="upcomingClassesContainer"><div class="loader"></div></div>
             </div>
 
-            <!-- New section for potential scheduling errors -->
-            <div class="day-section">
-                <h2 class="day-title unimportant-error-title">Potential Scheduling Errors</h2>
-                <div id="errorSubjectsContainer" class="loading">Checking for errors...</div>
+            <!-- Search by Date -->
+            <div class="card">
+                <h2 class="card-title text-xl mb-4">🔍 Search by Date</h2>
+                <div class="flex flex-col md:flex-row gap-4">
+                    <input type="date" id="datePicker" class="w-full p-3 border border-gray-300 rounded-lg">
+                    <button id="showScheduleBtn" class="btn w-full md:w-auto">Show Schedule</button>
+                </div>
+                <div id="selectedDateClasses" class="mt-4"></div>
             </div>
 
-        </div>
+        </main>
     </div>
 
-    <button class="refresh-btn" id="refreshBtn" onclick="refreshData()" title="Refresh Data">
+    <!-- Floating Refresh Button -->
+    <button class="refresh-btn fixed bottom-5 right-5 bg-blue-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-2xl" id="refreshBtn" title="Refresh Data">
         🔄
     </button>
     
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Firebase configuration from the environment
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        
-        let userId = null;
-        let appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        // Custom auth token provided by the environment
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-        /**
-         * Asynchronously signs in the user with a custom token or anonymously.
-         * @returns {Promise<void>}
-         */
-        async function signInUser() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                userId = auth.currentUser.uid;
-                console.log(`User signed in with ID: ${userId}`);
-            } catch (error) {
-                console.error("Firebase Auth error:", error);
-            }
-        }
-
-        /**
-         * Fetches user's saved class preferences from Firestore.
-         * @returns {Promise<string[]|null>} A promise that resolves with an array of saved classes or null.
-         */
-        async function fetchUserPreferences() {
-            if (!userId) {
-                return null;
-            }
-            try {
-                const docRef = doc(db, `/artifacts/${appId}/users/${userId}/preferences/classPreferences`);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    console.log("User preferences found:", docSnap.data().enrolledClasses);
-                    return docSnap.data().enrolledClasses;
-                } else {
-                    console.log("No user preferences found. Using default classes.");
-                    return null;
-                }
-            } catch (e) {
-                console.error("Error fetching preferences:", e);
-                return null;
-            }
-        }
-
-        /**
-         * Saves the user's selected classes to Firestore.
-         * @param {string[]} classesToSave The array of class names to save.
-         * @returns {Promise<void>}
-         */
-        async function saveUserPreferences(classesToSave) {
-            if (!userId) {
-                return;
-            }
-            try {
-                const docRef = doc(db, `/artifacts/${appId}/users/${userId}/preferences/classPreferences`);
-                await setDoc(docRef, { enrolledClasses: classesToSave });
-                showSuccess('Your class selections have been saved.');
-            } catch (e) {
-                showError('Failed to save your class selections.');
-                console.error("Error saving preferences:", e);
-            }
-        }
-        
-        // Expose Firebase functions to the global scope
-        window.signInUser = signInUser;
-        window.fetchUserPreferences = fetchUserPreferences;
-        window.saveUserPreferences = saveUserPreferences;
-        window.db = db;
-    </script>
     <script>
+        // --- APPLICATION LOGIC ---
         const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:D1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
         
-        let refreshInterval;
         let allSheetData = [];
         let enrolledClasses = ['IBA (S2)', 'DBTS (S2)', 'B2B', 'DOPM', 'SAPM (S2)'];
-        let activeUpcomingView = 'dayWise'; // 'dayWise' or 'subjectWise'
-        const allClasses = [
-            'B2B', 'BIA', 'CB', 'CBV', 'CMME', 'CS (S1)', 'CS (S2)', 'CSIE', 'CRM', 'DAP', 
-            'DBTS (S1)', 'DBTS (S2)', 'DMEC', 'DOPM', 'FIS', 'FT', 'GRSC', 'GTBL', 'IBA (S1)', 
-            'IBA (S2)', 'IBBV (S1)', 'IBBV (S2)', 'IMC', 'OSCA', 'PM', 'RM (S1)', 'RM (S2)',
-            'SAPM (S1)', 'SAPM (S2)', 'SC', 'SCM (S1)', 'SCM (S2)', 'SIMCO (S1)', 'SIMCO (S2)'
-        ];
+        let activeUpcomingView = 'dayWise';
+        let allClasses = [];
 
-        // Function to update the connection status text
-        function setConnectionStatus(isConnected) {
-            const statusElement = document.getElementById('connectionStatus');
-            if (statusElement) {
-                if (isConnected) {
-                    statusElement.textContent = 'Connected';
-                    statusElement.classList.remove('disconnected');
-                    statusElement.classList.add('connected');
-                } else {
-                    statusElement.textContent = 'Can\'t Connect';
-                    statusElement.classList.remove('connected');
-                    statusElement.classList.add('disconnected');
-                }
-            }
-        }
-        
-        function initializeDates() {
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-
-            document.getElementById('todayDate').textContent = 
-                today.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-            document.getElementById('tomorrowDate').textContent = 
-                tomorrow.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+        // --- UTILITY FUNCTIONS ---
+        function setConnectionStatus(isConnected, message = 'Connected') {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.textContent = isConnected ? message : '⚠️ Connection Failed';
+            statusEl.className = isConnected ? 'text-green-500 mt-2' : 'text-red-500 mt-2';
         }
 
-        async function fetchSheetData() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                const data = await response.json();
-                return data.values || [];
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                throw error;
-            }
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
 
         function parseDate(dateString) {
             if (!dateString) return null;
-            
-            const cleaned = dateString.trim();
-            const parts = cleaned.split('/');
+            const parts = dateString.trim().split('/');
             if (parts.length === 3) {
-                const month = parseInt(parts[0], 10);
-                const day = parseInt(parts[1], 10);
-                const year = parseInt(parts[2], 10);
+                const [month, day, year] = parts.map(p => parseInt(p, 10));
                 if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
-                    const isoDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const date = new Date(isoDate);
-                    if (!isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
-                        return date;
-                    }
+                    // Assuming MM/DD/YYYY format
+                    return new Date(year, month - 1, day);
                 }
-            }
-            const fallbackDate = new Date(cleaned);
-            if (!isNaN(fallbackDate.getTime())) {
-                return fallbackDate;
             }
             return null;
         }
 
-        function isSameDay(date1, date2) {
-            if (!date1 || !date2) return false;
-            return date1.getFullYear() === date2.getFullYear() &&
-                   date1.getMonth() === date2.getMonth() &&
-                   date1.getDate() === date2.getDate();
-        }
-        
-        function isPastDate(date) {
-            if (!date) return false;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const classDate = new Date(date);
-            classDate.setHours(0, 0, 0, 0);
-            return classDate.getTime() < today.getTime();
+        function isSameDay(d1, d2) {
+            if (!d1 || !d2) return false;
+            return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
         }
 
         function parseClassInfo(classString) {
-            if (!classString) return { class: '', instructor: '' };
-            
-            let class_name = classString.trim();
-            let instructor = '';
-            
+            if (!classString) return { class: 'Unnamed Class', instructor: '' };
             const separatorIndex = classString.indexOf(' - ');
-            const suffixRegex = /\s\((S1|S2)\)$/;
-            
-            const suffixMatch = class_name.match(suffixRegex);
-            if (suffixMatch) {
-                const parts = class_name.split(suffixMatch[0]);
-                class_name = parts[0].trim() + suffixMatch[0];
-            } else if (separatorIndex !== -1) {
-                class_name = classString.substring(0, separatorIndex).trim();
-                instructor = classString.substring(separatorIndex + 3).trim();
-            } else {
-                const parenthesisIndex = classString.lastIndexOf('(');
-                if (parenthesisIndex !== -1 && classString.endsWith(')')) {
-                    const content = classString.substring(parenthesisIndex + 1, classString.length - 1).trim();
-                    if (!['S1', 'S2'].includes(content)) {
-                        class_name = classString.substring(0, parenthesisIndex).trim();
-                        instructor = content;
-                    }
-                }
+            if (separatorIndex !== -1) {
+                return {
+                    class: classString.substring(0, separatorIndex).trim(),
+                    instructor: classString.substring(separatorIndex + 3).trim()
+                };
             }
-            return { class: class_name, instructor: instructor };
+            return { class: classString.trim(), instructor: '' };
         }
 
-        function filterClassesByDate(data, targetDate, classesToFilterBy) {
-            if (!data || data.length < 2) return [];
-            
-            const rows = data.slice(1);
-            
-            return rows.filter(row => {
-                if (row.length === 0 || !row[0]) return false;
-                const classDate = parseDate(row[0]);
-                const classInfo = parseClassInfo(row[2] || '');
-                return classDate && isSameDay(classDate, targetDate) && classesToFilterBy.includes(classInfo.class);
-            }).map(row => {
-                const classInfo = parseClassInfo(row[2] || '');
-                return {
-                    date: row[0] || '',
-                    time: row[1] || '',
-                    class: classInfo.class,
-                    instructor: classInfo.instructor,
-                    location: row[3] || ''
-                };
-            }).sort((a, b) => {
-                const timeA = a.time.toLowerCase();
-                const timeB = b.time.toLowerCase();
-                return timeA.localeCompare(timeB);
-            });
+        // --- LOCALSTORAGE FUNCTIONS ---
+        function saveUserPreferences(classesToSave) {
+            try {
+                localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave));
+                showToast('Schedule preferences saved!');
+            } catch (e) {
+                console.error("Error saving to localStorage:", e);
+                showToast('Failed to save preferences.', 'error');
+            }
         }
-        
+
+        function fetchUserPreferences() {
+            try {
+                const savedClasses = localStorage.getItem('enrolledClasses');
+                return savedClasses ? JSON.parse(savedClasses) : null;
+            } catch (e) {
+                console.error("Error fetching from localStorage:", e);
+                return null;
+            }
+        }
+
+        // --- RENDERING FUNCTIONS ---
         function renderClasses(classes, containerId) {
             const container = document.getElementById(containerId);
+            if (!container) return;
             if (classes.length === 0) {
-                container.innerHTML = '<div class="no-classes">No classes scheduled</div>';
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled!</p>';
                 return;
             }
             container.innerHTML = classes.map(cls => `
                 <div class="class-card">
-                    <div class="class-time">🕒 ${cls.time}</div>
-                    <div class="class-name">${cls.class}</div>
-                    <div class="class-details">
-                        ${cls.location ? `📍 ${cls.location}` : ''}
-                        ${cls.instructor ? ` • 👨‍🏫 ${cls.instructor}` : ''}
-                    </div>
+                    <p class="font-bold text-lg">${cls.class}</p>
+                    <p class="opacity-90">🕒 ${cls.time}</p>
+                    <p class="opacity-90">📍 ${cls.location || 'N/A'}</p>
+                    ${cls.instructor ? `<p class="opacity-90">👨‍🏫 ${cls.instructor}</p>` : ''}
                 </div>
             `).join('');
         }
 
-        function renderUpcomingSubjectWise() {
+        function renderUpcomingView(viewType, isRefresh = false) {
+            if (!isRefresh) activeUpcomingView = viewType;
             const container = document.getElementById('upcomingClassesContainer');
-            if (enrolledClasses.length === 0) {
-                container.innerHTML = '<div class="no-classes">No subjects selected. Please select your classes above.</div>';
-                return;
-            }
-            
-            if (!allSheetData || allSheetData.length === 0) {
-                container.innerHTML = '<div class="loading">Loading data to find upcoming classes...</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-            document.getElementById('dayWiseBtn').classList.remove('active');
-            document.getElementById('subjectWiseBtn').classList.add('active');
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            let tableHtml = '<table class="upcoming-classes-table"><thead><tr><th>Subject</th><th>Next Class</th><th>Second Next Class</th></tr></thead><tbody>';
-
-            enrolledClasses.forEach(subject => {
-                const allSubjectClasses = allSheetData.slice(1).filter(row => {
-                    const classInfo = parseClassInfo(row[2] || '');
-                    return classInfo.class === subject;
-                });
-
-                const upcomingClasses = allSubjectClasses
-                    .filter(row => {
-                        const classDate = parseDate(row[0]);
-                        return classDate && classDate.getTime() >= today.getTime();
-                    })
-                    .map(row => ({
-                        date: parseDate(row[0]),
-                        time: row[1] || ''
-                    }))
-                    .sort((a, b) => {
-                        if (a.date.getTime() !== b.date.getTime()) {
-                            return a.date.getTime() - b.date.getTime();
-                        }
-                        return a.time.localeCompare(b.time);
-                    });
-
-                let nextClass = 'N/A';
-                if (upcomingClasses.length > 0) {
-                    const date = upcomingClasses[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    nextClass = `${date} at ${upcomingClasses[0].time}`;
-                }
-
-                let secondNextClass = 'N/A';
-                if (upcomingClasses.length > 1) {
-                    const date = upcomingClasses[1].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    secondNextClass = `${date} at ${upcomingClasses[1].time}`;
-                }
-
-                tableHtml += `
-                    <tr>
-                        <td>${subject}</td>
-                        <td>${nextClass}</td>
-                        <td>${secondNextClass}</td>
-                    </tr>
-                `;
-            });
-
-            tableHtml += '</tbody></table>';
-            container.innerHTML = tableHtml;
-        }
-        
-        function renderUpcomingDayWise() {
-            const container = document.getElementById('upcomingClassesContainer');
-            if (!allSheetData || allSheetData.length === 0) {
-                 container.innerHTML = '<div class="no-classes">No data available. Please refresh.</div>';
-                 return;
-            }
-            
-            container.innerHTML = '';
-            document.getElementById('subjectWiseBtn').classList.remove('active');
-            document.getElementById('dayWiseBtn').classList.add('active');
-            
-            const today = new Date();
-            const daysToShow = 7;
-            
-            let allWeeksClasses = [];
-            for (let i = 0; i < daysToShow; i++) {
-                const targetDate = new Date(today);
-                targetDate.setDate(today.getDate() + i);
-                const dayClasses = filterClassesByDate(allSheetData, targetDate, enrolledClasses);
-                
-                if (dayClasses.length > 0) {
-                    allWeeksClasses.push({ date: targetDate, classes: dayClasses });
-                }
-            }
-
-            if (allWeeksClasses.length === 0) {
-                container.innerHTML = '<div class="no-classes">No classes scheduled for the next 7 days.</div>';
-                return;
-            }
-            
-            const weekHtml = allWeeksClasses.map(day => {
-                const dayTitle = day.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                const classCardsHtml = day.classes.map(cls => `
-                    <div class="class-card">
-                        <div class="class-time">🕒 ${cls.time}</div>
-                        <div class="class-name">${cls.class}</div>
-                        <div class="class-details">
-                            ${cls.location ? `📍 ${cls.location}` : ''}
-                            ${cls.instructor ? ` • 👨‍🏫 ${cls.instructor}` : ''}
-                        </div>
-                    </div>
-                `).join('');
-
-                return `
-                    <div class="weekly-schedule-day">
-                        <h3>${dayTitle}</h3>
-                        ${classCardsHtml}
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = weekHtml;
-        }
-
-        function findSchedulingErrors() {
-            const container = document.getElementById('errorSubjectsContainer');
-            if (!allSheetData || allSheetData.length === 0) {
-                container.innerHTML = '<div class="loading">Loading data to check for errors...</div>';
-                return;
-            }
-            
-            const subjectCounts = {};
-            allSheetData.slice(1).forEach(row => {
-                const subject = parseClassInfo(row[2] || '').class;
-                if (subject) {
-                    subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
-                }
-            });
-            const subjectsToCheck = [
-                'B2B', 'BIA', 'CB', 'CBV', 'CMME', 'CS (S1)', 'CS (S2)', 'CSIE', 'CRM', 'DAP', 
-                'DBTS (S1)', 'DBTS (S2)', 'DMEC', 'DOPM', 'FIS', 'FT', 'GRSC', 'GTBL', 'IBA (S1)', 
-                'IBA (S2)', 'IBBV (S1)', 'IBBV (S2)', 'IMC', 'OSCA', 'PM', 'RM (S1)', 'RM (S2)',
-                'SAPM (S1)', 'SAPM (S2)', 'SC', 'SCM (S1)', 'SCM (S2)', 'SIMCO (S1)', 'SIMCO (S2)'
-            ];
-
-            const errorSubjects = subjectsToCheck.filter(subject => {
-                const count = subjectCounts[subject] || 0;
-                return count !== 20;
-            });
-            if (errorSubjects.length === 0) {
-                container.innerHTML = '<div class="no-classes success">✅ All specified subjects have a total of 20 classes.</div>';
-            } else {
-                let tableHtml = '<table class="error-table"><thead><tr><th>Subject</th><th>Number of Scheduled Classes</th></tr></thead><tbody>';
-                errorSubjects.forEach(subject => {
-                    const count = subjectCounts[subject] || 0;
-                    tableHtml += `<tr><td>${subject}</td><td>${count}</td></tr>`;
-                });
-                tableHtml += '</tbody></table>';
-                container.innerHTML = tableHtml;
-            }
-        }
-        
-        async function renderUpcomingView(viewType) {
-            activeUpcomingView = viewType;
-            const upcomingContainer = document.getElementById('upcomingClassesContainer');
             const dayWiseBtn = document.getElementById('dayWiseBtn');
             const subjectWiseBtn = document.getElementById('subjectWiseBtn');
-            
-            // Set loading state and button styles immediately
-            upcomingContainer.innerHTML = '<div class="loading">Fetching data...</div>';
-            if (viewType === 'dayWise') {
-                dayWiseBtn.classList.add('active');
-                subjectWiseBtn.classList.remove('active');
-            } else {
-                dayWiseBtn.classList.remove('active');
-                subjectWiseBtn.classList.add('active');
+
+            dayWiseBtn.classList.toggle('active', activeUpcomingView === 'dayWise');
+            dayWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'dayWise');
+            subjectWiseBtn.classList.toggle('active', activeUpcomingView === 'subjectWise');
+            subjectWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'subjectWise');
+
+            if (allSheetData.length === 0) {
+                container.innerHTML = '<div class="loader"></div>';
+                return;
             }
-            
-            try {
-                if (allSheetData.length === 0) {
-                    allSheetData = await fetchSheetData();
-                    setConnectionStatus(true);
-                }
-                
-                if (viewType === 'dayWise') {
-                    renderUpcomingDayWise();
-                } else {
-                    renderUpcomingSubjectWise();
-                }
-            } catch (error) {
-                setConnectionStatus(false);
-                upcomingContainer.innerHTML = '<div class="no-classes disconnected">Failed to fetch schedule data.</div>';
+
+            if (activeUpcomingView === 'dayWise') {
+                renderUpcomingDayWise(container);
+            } else {
+                renderUpcomingSubjectWise(container);
             }
         }
 
+        function renderUpcomingDayWise(container) {
+            const today = new Date();
+            let content = '';
+            for (let i = 0; i < 7; i++) {
+                const targetDate = new Date();
+                targetDate.setDate(today.getDate() + i);
+                const classes = filterAndSortClasses(allSheetData, targetDate);
+                if (classes.length > 0) {
+                    content += `
+                        <div class="mb-4">
+                            <h3 class="font-bold border-b pb-1 mb-2">${targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
+                            ${classes.map(cls => `
+                                <div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400">
+                                    <p class="font-bold">${cls.class}</p>
+                                    <p class="text-sm">🕒 ${cls.time} | 📍 ${cls.location || 'N/A'}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            }
+            container.innerHTML = content || '<p class="text-gray-500 text-center py-4">🎉 No classes in the next 7 days!</p>';
+        }
+
+        function renderUpcomingSubjectWise(container) {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            const upcomingBySubject = enrolledClasses.map(subject => {
+                const nextTwo = allSheetData
+                    .filter(row => {
+                        const classDate = parseDate(row[0]);
+                        return parseClassInfo(row[2] || '').class === subject && classDate && classDate >= today;
+                    })
+                    .sort((a,b) => {
+                        const dateA = parseDate(a[0]);
+                        const dateB = parseDate(b[0]);
+                        return dateA - dateB || a[1].localeCompare(b[1]);
+                    })
+                    .slice(0, 2);
+                return { subject, nextTwo };
+            });
+
+            container.innerHTML = `
+                <table class="w-full text-left">
+                    <thead><tr class="border-b"><th class="p-2">Subject</th><th class="p-2">Next Class</th><th class="p-2">2nd Next</th></tr></thead>
+                    <tbody>
+                    ${upcomingBySubject.map(({ subject, nextTwo }) => `
+                        <tr class="border-b">
+                            <td class="p-2 font-semibold">${subject}</td>
+                            <td class="p-2 text-sm">${nextTwo[0] ? `${nextTwo[0][0]} at ${nextTwo[0][1]}` : 'N/A'}</td>
+                            <td class="p-2 text-sm">${nextTwo[1] ? `${nextTwo[1][0]} at ${nextTwo[1][1]}` : 'N/A'}</td>
+                        </tr>
+                    `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderSelectedTags() {
+            const container = document.getElementById('selectedTagsContainer');
+            container.innerHTML = enrolledClasses.map(subject => `
+                <div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm">
+                    <span>${subject}</span>
+                    <button class="font-bold remove-tag-btn" data-subject="${subject}">x</button>
+                </div>
+            `).join('');
+        }
+
+        // --- DATA & CORE LOGIC ---
+        function filterAndSortClasses(data, targetDate) {
+            return data
+                .filter(row => {
+                    const classDate = parseDate(row[0]);
+                    const className = parseClassInfo(row[2] || '').class;
+                    return classDate && isSameDay(classDate, targetDate) && enrolledClasses.includes(className);
+                })
+                .map(row => {
+                    const classInfo = parseClassInfo(row[2] || '');
+                    return {
+                        date: row[0], time: row[1], class: classInfo.class,
+                        instructor: classInfo.instructor, location: row[3]
+                    };
+                })
+                .sort((a, b) => a.time.localeCompare(b.time));
+        }
 
         async function refreshData() {
             const refreshBtn = document.getElementById('refreshBtn');
-            refreshBtn.classList.add('spinning');
+            refreshBtn.classList.add('animate-spin');
             
             try {
-                const data = await fetchSheetData();
-                allSheetData = data;
-                setConnectionStatus(true);
-                
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                allSheetData = data.values || [];
+                setConnectionStatus(true, `Last updated: ${new Date().toLocaleTimeString()}`);
+
+                const uniqueClasses = new Set(allSheetData.slice(1).map(row => parseClassInfo(row[2] || '').class).filter(Boolean));
+                allClasses = [...uniqueClasses].sort();
+
                 const today = new Date();
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
+                const tomorrow = new Date();
+                tomorrow.setDate(today.getDate() + 1);
 
-                const todayClasses = filterClassesByDate(allSheetData, today, enrolledClasses);
-                const tomorrowClasses = filterClassesByDate(allSheetData, tomorrow, enrolledClasses);
+                renderClasses(filterAndSortClasses(allSheetData, today), 'todayClasses');
+                renderClasses(filterAndSortClasses(allSheetData, tomorrow), 'tomorrowClasses');
+                renderUpcomingView(activeUpcomingView, true);
 
-                renderClasses(todayClasses, 'todayClasses');
-                renderClasses(tomorrowClasses, 'tomorrowClasses');
-                
-                if (activeUpcomingView === 'dayWise') {
-                    renderUpcomingDayWise();
-                } else {
-                    renderUpcomingSubjectWise();
-                }
-
-                findSchedulingErrors();
-
-                const now = new Date();
-                console.log(`Data refreshed at ${now.toLocaleTimeString()}`);
             } catch (error) {
                 setConnectionStatus(false);
-                showError('Failed to refresh data: ' + error.message);
-                console.error('Refresh error:', error);
+                showToast('Failed to refresh data.', 'error');
             } finally {
-                refreshBtn.classList.remove('spinning');
+                refreshBtn.classList.remove('animate-spin');
             }
         }
-        
-        async function fetchClassesForDate() {
-            const dateInput = document.getElementById('datePicker');
-            const selectedDate = new Date(dateInput.value);
 
-            if (isNaN(selectedDate.getTime())) {
-                showError('Please select a valid date.');
+        function fetchClassesForDate() {
+            const dateStr = document.getElementById('datePicker').value;
+            if (!dateStr) {
+                showToast('Please select a date.', 'error');
                 return;
             }
-            const container = document.getElementById('selectedDateClasses');
-            container.innerHTML = '<div class="loading">Loading schedule...</div>';
-            try {
-                if (allSheetData.length === 0) {
-                     allSheetData = await fetchSheetData();
-                }
-                const classes = filterClassesByDate(allSheetData, selectedDate, enrolledClasses);
-                renderClasses(classes, 'selectedDateClasses');
-            } catch (error) {
-                showError('Failed to fetch schedule for the selected date.');
-                console.error('Date search error:', error);
-            }
-        }
-        
-        async function updateEnrolledClassesAndRefresh() {
-            await saveUserPreferences(enrolledClasses);
-            refreshData();
-            const dateInput = document.getElementById('datePicker');
-            if (dateInput.value) {
-                fetchClassesForDate();
-            }
-        }
-        
-        function renderSelectedTags() {
-            const container = document.getElementById('selectedTagsContainer');
-            container.innerHTML = '';
-            enrolledClasses.forEach(subject => {
-                const tag = document.createElement('div');
-                tag.className = 'selected-tag';
-                tag.innerHTML = `
-                    <span>${subject}</span>
-                    <span class="remove-tag" data-subject="${subject}">x</span>
-                `;
-                container.appendChild(tag);
-            });
-            container.querySelectorAll('.remove-tag').forEach(tag => {
-                tag.addEventListener('click', (event) => {
-                    const subjectToRemove = event.target.dataset.subject;
-                    enrolledClasses = enrolledClasses.filter(s => s !== subjectToRemove);
-                    renderSelectedTags();
-                });
-            });
-        }
-        
-        function renderSearchResults(query) {
-            const resultsContainer = document.getElementById('searchResults');
-            const trimmedQuery = query.trim().toLowerCase();
-            
-            if (trimmedQuery.length === 0) {
-                resultsContainer.innerHTML = '';
-                resultsContainer.classList.remove('active');
-                return;
-            }
-            
-            const filteredClasses = allClasses.filter(subject => 
-                subject.toLowerCase().includes(trimmedQuery) && !enrolledClasses.includes(subject)
-            );
-            
-            if (filteredClasses.length > 0) {
-                resultsContainer.innerHTML = filteredClasses.map(subject => `
-                    <div class="search-result-item" data-subject="${subject}">${subject}</div>
-                `).join('');
-                resultsContainer.classList.add('active');
-            } else {
-                resultsContainer.innerHTML = `<div class="search-result-item">No subjects found.</div>`;
-                resultsContainer.classList.add('active');
-            }
-            
-            resultsContainer.querySelectorAll('.search-result-item').forEach(item => {
-                item.addEventListener('click', (event) => {
-                    const subjectToAdd = event.target.dataset.subject;
-                    if (subjectToAdd && !enrolledClasses.includes(subjectToAdd)) {
-                        enrolledClasses.push(subjectToAdd);
-                        enrolledClasses.sort();
-                        renderSelectedTags();
-                        document.getElementById('subjectSearchInput').value = '';
-                        resultsContainer.classList.remove('active');
-                    }
-                });
-            });
-        }
-        
-        function startAutoRefresh() {
-            const refreshIntervalMinutes = 90;
-            refreshInterval = setInterval(refreshData, refreshIntervalMinutes * 60 * 1000);
-            refreshData();
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const selectedDate = new Date(year, month - 1, day);
+            renderClasses(filterAndSortClasses(allSheetData, selectedDate), 'selectedDateClasses');
         }
 
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.textContent = message;
-            
-            document.querySelector('.container').insertBefore(errorDiv, document.querySelector('.container').firstChild);
-            
-            setTimeout(() => {
-                errorDiv.remove();
-            }, 5000);
-        }
-
-        function showSuccess(message) {
-            const successDiv = document.createElement('div');
-            successDiv.style.cssText = 'background: #2ecc71; color: white; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 4px solid #27ae60;';
-            successDiv.textContent = message;
-            
-            document.querySelector('.container').insertBefore(successDiv, document.querySelector('.container').firstChild);
-            
-            setTimeout(() => {
-                successDiv.remove();
-            }, 3000);
-        }
-        
-        async function initialize() {
-            initializeDates();
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            document.getElementById('datePicker').value = `${year}-${month}-${day}`;
-
-            try {
-                await signInUser();
-                const savedClasses = await fetchUserPreferences();
-                if (savedClasses) {
-                    enrolledClasses = savedClasses;
-                }
-            } catch (error) {
-                console.error("Initialization failed:", error);
-            }
-            
-            document.getElementById('subjectSearchInput').addEventListener('input', (event) => {
-                renderSearchResults(event.target.value);
-            });
-            
-            document.addEventListener('click', (event) => {
-                if (!event.target.closest('.search-container')) {
-                    document.getElementById('searchResults').classList.remove('active');
-                }
-            });
-
+        function removeTag(subjectToRemove) {
+            enrolledClasses = enrolledClasses.filter(s => s !== subjectToRemove);
             renderSelectedTags();
-
-            fetchSheetData()
-                .then(data => {
-                    allSheetData = data;
-                    setConnectionStatus(true);
-                    startAutoRefresh();
-                    if (activeUpcomingView === 'dayWise') {
-                        renderUpcomingDayWise();
-                    } else {
-                        renderUpcomingSubjectWise();
-                    }
-                    findSchedulingErrors();
-                })
-                .catch(error => {
-                    showError('Failed to connect to Google Sheet: ' + error.message);
-                    setConnectionStatus(false);
-                    console.error('Initialization error:', error);
-                });
         }
-        
-        window.renderUpcomingView = function(viewType) {
-            activeUpcomingView = viewType;
-            const upcomingContainer = document.getElementById('upcomingClassesContainer');
-            const dayWiseBtn = document.getElementById('dayWiseBtn');
-            const subjectWiseBtn = document.getElementById('subjectWiseBtn');
+
+        function updateEnrolledClassesAndRefresh() {
+            saveUserPreferences(enrolledClasses);
+            refreshData();
+        }
+
+        // --- EVENT LISTENERS & INITIALIZATION ---
+        function setupEventListeners() {
+            const searchInput = document.getElementById('subjectSearchInput');
+            const resultsContainer = document.getElementById('searchResults');
             
-            upcomingContainer.innerHTML = '';
-            if (allSheetData.length > 0) {
-                if (viewType === 'dayWise') {
-                    dayWiseBtn.classList.add('active');
-                    subjectWiseBtn.classList.remove('active');
-                    renderUpcomingDayWise();
-                } else {
-                    dayWiseBtn.classList.remove('active');
-                    subjectWiseBtn.classList.add('active');
-                    renderUpcomingSubjectWise();
+            searchInput.addEventListener('input', () => {
+                const query = searchInput.value.toLowerCase();
+                if (!query) {
+                    resultsContainer.classList.add('hidden');
+                    return;
                 }
-            } else {
-                upcomingContainer.innerHTML = '<div class="loading">Fetching data...</div>';
-            }
-        };
-
-        window.renderUpcomingDayWise = function() {
-            const container = document.getElementById('upcomingClassesContainer');
-            if (!allSheetData || allSheetData.length === 0) {
-                 container.innerHTML = '<div class="no-classes">No data available. Please refresh.</div>';
-                 return;
-            }
-            
-            container.innerHTML = '';
-            
-            const today = new Date();
-            const daysToShow = 7;
-            
-            let allWeeksClasses = [];
-            for (let i = 0; i < daysToShow; i++) {
-                const targetDate = new Date(today);
-                targetDate.setDate(today.getDate() + i);
-                const dayClasses = filterClassesByDate(allSheetData, targetDate, enrolledClasses);
-                
-                if (dayClasses.length > 0) {
-                    allWeeksClasses.push({ date: targetDate, classes: dayClasses });
-                }
-            }
-
-            if (allWeeksClasses.length === 0) {
-                container.innerHTML = '<div class="no-classes">No classes scheduled for the next 7 days.</div>';
-                return;
-            }
-            
-            const weekHtml = allWeeksClasses.map(day => {
-                const dayTitle = day.date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                const classCardsHtml = day.classes.map(cls => `
-                    <div class="class-card">
-                        <div class="class-time">🕒 ${cls.time}</div>
-                        <div class="class-name">${cls.class}</div>
-                        <div class="class-details">
-                            ${cls.location ? `📍 ${cls.location}` : ''}
-                            ${cls.instructor ? ` • 👨‍🏫 ${cls.instructor}` : ''}
-                        </div>
-                    </div>
-                `).join('');
-
-                return `
-                    <div class="weekly-schedule-day">
-                        <h3>${dayTitle}</h3>
-                        ${classCardsHtml}
-                    </div>
-                `;
-            }).join('');
-
-            container.innerHTML = weekHtml;
-        };
-
-        window.renderUpcomingSubjectWise = function() {
-            const container = document.getElementById('upcomingClassesContainer');
-            if (enrolledClasses.length === 0) {
-                container.innerHTML = '<div class="no-classes">No subjects selected. Please select your classes above.</div>';
-                return;
-            }
-            
-            if (!allSheetData || allSheetData.length === 0) {
-                container.innerHTML = '<div class="loading">Loading data to find upcoming classes...</div>';
-                return;
-            }
-
-            container.innerHTML = '';
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            let tableHtml = '<table class="upcoming-classes-table"><thead><tr><th>Subject</th><th>Next Class</th><th>Second Next Class</th></tr></thead><tbody>';
-
-            enrolledClasses.forEach(subject => {
-                const allSubjectClasses = allSheetData.slice(1).filter(row => {
-                    const classInfo = parseClassInfo(row[2] || '');
-                    return classInfo.class === subject;
-                });
-
-                const upcomingClasses = allSubjectClasses
-                    .filter(row => {
-                        const classDate = parseDate(row[0]);
-                        return classDate && classDate.getTime() >= today.getTime();
-                    })
-                    .map(row => ({
-                        date: parseDate(row[0]),
-                        time: row[1] || ''
-                    }))
-                    .sort((a, b) => {
-                        if (a.date.getTime() !== b.date.getTime()) {
-                            return a.date.getTime() - b.date.getTime();
-                        }
-                        return a.time.localeCompare(b.time);
-                    });
-
-                let nextClass = 'N/A';
-                if (upcomingClasses.length > 0) {
-                    const date = upcomingClasses[0].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    nextClass = `${date} at ${upcomingClasses[0].time}`;
-                }
-
-                let secondNextClass = 'N/A';
-                if (upcomingClasses.length > 1) {
-                    const date = upcomingClasses[1].date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    secondNextClass = `${date} at ${upcomingClasses[1].time}`;
-                }
-
-                tableHtml += `
-                    <tr>
-                        <td>${subject}</td>
-                        <td>${nextClass}</td>
-                        <td>${secondNextClass}</td>
-                    </tr>
-                `;
+                const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !enrolledClasses.includes(c));
+                resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
+                resultsContainer.classList.remove('hidden');
             });
 
-            tableHtml += '</tbody></table>';
-            container.innerHTML = tableHtml;
-        };
+            resultsContainer.addEventListener('click', (e) => {
+                if (e.target.dataset.subject) {
+                    enrolledClasses.push(e.target.dataset.subject);
+                    enrolledClasses.sort();
+                    renderSelectedTags();
+                    searchInput.value = '';
+                    resultsContainer.classList.add('hidden');
+                }
+            });
 
-        window.addEventListener('load', initialize);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.relative')) {
+                    resultsContainer.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('selectedTagsContainer').addEventListener('click', (event) => {
+                const button = event.target.closest('.remove-tag-btn');
+                if (button) {
+                    removeTag(button.dataset.subject);
+                }
+            });
+
+            document.getElementById('updateScheduleBtn').addEventListener('click', updateEnrolledClassesAndRefresh);
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+            document.getElementById('dayWiseBtn').addEventListener('click', () => renderUpcomingView('dayWise'));
+            document.getElementById('subjectWiseBtn').addEventListener('click', () => renderUpcomingView('subjectWise'));
+            document.getElementById('showScheduleBtn').addEventListener('click', fetchClassesForDate);
+        }
+
+        function initialize() {
+            const today = new Date();
+            document.getElementById('todayDate').textContent = `(${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+            const tomorrow = new Date();
+            tomorrow.setDate(today.getDate() + 1);
+            document.getElementById('tomorrowDate').textContent = `(${tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+            document.getElementById('datePicker').valueAsDate = today;
+
+            setupEventListeners();
+
+            const savedClasses = fetchUserPreferences();
+            if (savedClasses && savedClasses.length > 0) {
+                enrolledClasses = savedClasses;
+            }
+            renderSelectedTags();
+            refreshData();
+        }
+
+        initialize();
     </script>
 </body>
 </html>
