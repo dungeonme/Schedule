@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/png" href="https://cdn4.iconfinder.com/data/icons/small-n-flat/24/calendar-1024.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akshay's Schedule</title>
+    <title>My Projects</title>
+    <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,20 +12,25 @@
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #FDF8F2; /* A slightly different warm background */
+            background-color: #FDF8F2;
         }
         .app-card {
             background-color: white;
-            border-radius: 1rem;
+            border-radius: 1.5rem; /* Slightly larger radius */
             border: 1px solid #FBEAEB;
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-            padding: 2rem;
+            padding: 2.5rem; /* More padding */
             transition: all 0.3s ease-in-out;
             text-decoration: none;
             color: inherit;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Center content vertically */
+            align-items: center; /* Center content horizontally */
+            text-align: center;
         }
         .app-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px); /* More pronounced hover effect */
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
         }
         .app-title {
@@ -37,34 +42,25 @@
         }
     </style>
 </head>
-<body class="flex items-center justify-center min-h-screen">
+<body class="flex items-center justify-center min-h-screen p-4">
 
-    <div class="container mx-auto p-4 md:p-6 max-w-4xl text-center">
-        <!-- Header -->
-        <header class="mb-12">
-            <h1 class="text-5xl md:text-6xl font-bold text-[#A0522D]">Welcome!</h1>
-            <p class="text-gray-500 mt-4 text-lg">Choose an application to launch.</p>
-        </header>
+    <main class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+        
+        <!-- Link to Mess Schedule -->
+        <a href="./mess.html" class="app-card">
+            <div class="text-7xl mb-5">🍛</div>
+            <h2 class="app-title text-3xl mb-2">Mess Schedule</h2>
+            <p class="app-description">Check the weekly mess menu, see what's currently being served, and find out what's next.</p>
+        </a>
 
-        <!-- Main Content -->
-        <main class="grid md:grid-cols-2 gap-8">
-            
-            <!-- Link to Mess Schedule -->
-            <a href="./mess.html" class="app-card flex flex-col items-center">
-                <div class="text-6xl mb-4">🍛</div>
-                <h2 class="app-title text-2xl mb-2">Mess Schedule</h2>
-                <p class="app-description">Check the weekly mess menu, see what's currently being served, and find out what's next.</p>
-            </a>
+        <!-- Link to Class Schedule -->
+        <a href="./class_schedule.html" class="app-card">
+            <div class="text-7xl mb-5">🗓️</div>
+            <h2 class="app-title text-3xl mb-2">Class Schedule</h2>
+            <p class="app-description">View your weekly class timetable, check room numbers, and never miss a lecture.</p>
+        </a>
 
-            <!-- Link to Class Schedule -->
-            <a href="./class_schedule.html" class="app-card flex flex-col items-center">
-                <div class="text-6xl mb-4">🗓️</div>
-                <h2 class="app-title text-2xl mb-2">Class Schedule</h2>
-                <p class="app-description">View your weekly class timetable, check room numbers, and never miss a lecture.</p>
-            </a>
-
-        </main>
-    </div>
+    </main>
 
 </body>
 </html>
