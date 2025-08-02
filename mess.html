@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mess Schedule</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #FFF8F0; /* A warm, creamy background */
+        }
+        .card {
+            background-color: white;
+            border-radius: 1rem; /* Softer corners */
+            border: 1px solid #FBEAEB;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #AD8B73; /* A warm brown color */
+        }
+        .meal-item {
+            color: #4F4A45; /* Darker brown for text */
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 500;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #E57C23; /* Orange loader */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Custom radio buttons */
+        .form-radio {
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 0.15em solid #E57C23;
+            border-radius: 50%;
+            transform: translateY(-0.075em);
+            display: grid;
+            place-content: center;
+        }
+        .form-radio::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #E57C23;
+        }
+        .form-radio:checked::before {
+            transform: scale(1);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="loader-container" class="flex justify-center items-center h-screen">
+        <div class="loader"></div>
+    </div>
+
+    <div id="app-container" class="container mx-auto p-4 md:p-6 max-w-4xl hidden">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 id="app-title" class="text-4xl md:text-5xl font-bold text-[#A0522D]">Mess Schedule 🍛</h1>
+            <p id="current-date" class="text-gray-500 mt-2 text-lg"></p>
+            <p id="current-time" class="text-gray-500"></p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex flex-col gap-6">
+            <!-- Current & Next Meal Section -->
+            <section class="grid md:grid-cols-2 gap-6">
+                <!-- What's being served -->
+                <div class="card">
+                    <h2 class="card-title mb-4 text-xl">Right Now 😋</h2>
+                    <div id="current-meal-content">
+                        <p class="meal-item text-blue-600">Checking...</p>
+                    </div>
+                </div>
+                <!-- Next Meal -->
+                <div class="card">
+                    <h2 class="card-title mb-4 text-xl">Coming Up Next 🕒</h2>
+                    <div id="next-meal-content">
+                         <p class="meal-item text-green-600">Figuring it out...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Menu Section -->
+            <section class="card">
+                <h2 class="card-title mb-4 text-xl">Search Full Menu 🗓️</h2>
+                <div class="flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-grow">
+                        <label for="day-select" class="block text-sm font-medium text-gray-700 mb-1">Day of the Week</label>
+                        <select id="day-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-white">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                    <div class="flex-grow md:pl-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Meal Time</label>
+                        <div id="meal-select" class="flex flex-wrap gap-x-6 gap-y-2 pt-2">
+                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Breakfast" class="form-radio"> <span class="ml-2">Breakfast</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Lunch" class="form-radio"> <span class="ml-2">Lunch</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Snacks" class="form-radio"> <span class="ml-2">Snacks</span></label>
+                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Dinner" class="form-radio"> <span class="ml-2">Dinner</span></label>
+                        </div>
+                    </div>
+                </div>
+                <div id="search-result" class="mt-6 p-4 bg-orange-50 rounded-lg min-h-[50px]">
+                    <p class="text-gray-500">Select a day and meal to see the menu.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURATION ---
+            const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/Menu!A1:F1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+            const MEAL_TIMES = {
+                Breakfast: { start: 8.5, end: 10.5 }, // 8:30 AM - 10:30 AM
+                Lunch: { start: 13, end: 15 },       // 1:00 PM - 3:00 PM
+                Snacks: { start: 17.5, end: 19.5 },    // 5:30 PM - 7:30 PM
+                Dinner: { start: 20.5, end: 23 },     // 8:30 PM - 11:00 PM
+                NightCanteen: { start: 0, end: 2 }   // 12:00 AM - 2:00 AM
+            };
+            const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            
+            // --- DOM ELEMENTS ---
+            const loaderContainer = document.getElementById('loader-container');
+            const appContainer = document.getElementById('app-container');
+            const appTitleEl = document.getElementById('app-title');
+            const currentDateEl = document.getElementById('current-date');
+            const currentTimeEl = document.getElementById('current-time');
+            const currentMealContentEl = document.getElementById('current-meal-content');
+            const nextMealContentEl = document.getElementById('next-meal-content');
+            const daySelectEl = document.getElementById('day-select');
+            const mealSelectContainer = document.getElementById('meal-select');
+            const searchResultEl = document.getElementById('search-result');
+
+            let menuData = {};
+
+            // --- FUNCTIONS ---
+
+            async function fetchAndProcessMenu() {
+                try {
+                    const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    const data = await response.json();
+                    const rows = data.values;
+
+                    if (!rows || rows.length < 2) throw new Error("No data found in the sheet.");
+                    
+                    const monthName = rows[1] && rows[1][5] ? rows[1][5] : '';
+                    if (monthName) {
+                        appTitleEl.textContent = `Mess Schedule - ${monthName} 🍛`;
+                    }
+                    
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        const day = row[0]?.trim();
+                        if (day && !menuData[day]) {
+                            menuData[day] = {
+                                Breakfast: row[1]?.trim() || 'Not specified',
+                                Lunch: row[2]?.trim() || 'Not specified',
+                                Snacks: row[3]?.trim() || 'Not specified',
+                                Dinner: row[4]?.trim() || 'Not specified'
+                            };
+                        }
+                    }
+                    
+                    populateDaySelector();
+                    updateLiveStatus();
+                    setupSearchListeners();
+
+                    loaderContainer.style.display = 'none';
+                    appContainer.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error("Failed to fetch or process menu:", error);
+                    loaderContainer.innerHTML = `<p class="text-red-500 font-semibold p-4 text-center">Failed to load menu data.<br>Please check the console or try again later.</p>`;
+                }
+            }
+
+            function getEmojiForMeal(mealText) {
+                if (!mealText) return '🍴 ';
+                const lower = mealText.toLowerCase();
+                if (lower.includes('chicken') || lower.includes('mutton')) return '🍗 ';
+                if (lower.includes('egg')) return '🥚 ';
+                if (lower.includes('paneer') || lower.includes('cheese')) return '🧀 ';
+                if (lower.includes('dosa') || lower.includes('idli') || lower.includes('uttapam')) return '🥞 ';
+                if (lower.includes('paratha') || lower.includes('puri') || lower.includes('poori')) return '🍞 ';
+                if (lower.includes('roti') || lower.includes('chapati')) return '🫓 ';
+                if (lower.includes('rice') || lower.includes('pulao') || lower.includes('biryani')) return '🍚 ';
+                if (lower.includes('dal') || lower.includes('sambar')) return '🥣 ';
+                if (lower.includes('chole') || lower.includes('rajma')) return '🍲 ';
+                if (lower.includes('veg') || lower.includes('sabzi') || lower.includes('gobhi') || lower.includes('aloo') || lower.includes('bhindi')) return '🥦 ';
+                if (lower.includes('salad')) return '🥗 ';
+                if (lower.includes('juice') || lower.includes('lassi')) return '🧃 ';
+                if (lower.includes('milk') || lower.includes('tea') || lower.includes('coffee')) return '☕ ';
+                if (lower.includes('sandwich')) return '🥪 ';
+                if (lower.includes('noodles') || lower.includes('maggi')) return '🍜 ';
+                if (lower.includes('pasta')) return '🍝 ';
+                if (lower.includes('pizza')) return '🍕 ';
+                if (lower.includes('burger')) return '🍔 ';
+                if (lower.includes('samosa') || lower.includes('kachori')) return '🥟 ';
+                if (lower.includes('kheer') || lower.includes('halwa') || lower.includes('gulab jamun')) return '🍮 ';
+                if (lower.includes('fruit')) return '🍉 ';
+                if (lower.includes('curd') || lower.includes('dahi')) return '🥣 ';
+                return '🍴 ';
+            }
+
+            function populateDaySelector() {
+                const availableDays = Object.keys(menuData);
+                daySelectEl.innerHTML = '<option value="" disabled>Select a day</option>';
+                availableDays.forEach(day => {
+                    const option = document.createElement('option');
+                    option.value = day;
+                    option.textContent = day;
+                    daySelectEl.appendChild(option);
+                });
+                const today = DAYS[new Date().getDay()];
+                if(availableDays.includes(today)){
+                    daySelectEl.value = today;
+                }
+            }
+
+            function updateLiveStatus() {
+                const now = new Date();
+                const currentDayName = DAYS[now.getDay()];
+                const currentHour = now.getHours() + now.getMinutes() / 60;
+
+                const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                currentDateEl.textContent = now.toLocaleDateString('en-IN', dateOptions);
+                currentTimeEl.textContent = `Current Time: ${now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute:'2-digit' })}`;
+
+                let currentMeal = null;
+                for (const meal in MEAL_TIMES) {
+                    const timeSlot = MEAL_TIMES[meal];
+                    if (currentHour >= timeSlot.start && currentHour < timeSlot.end) {
+                        currentMeal = meal;
+                        break;
+                    }
+                }
+                
+                if (currentMeal === 'NightCanteen') {
+                    currentMealContentEl.innerHTML = `<p class="meal-item text-purple-600">🦉 Night Canteen is Open</p>`;
+                } else if (currentMeal) {
+                    const mealName = menuData[currentDayName]?.[currentMeal] || 'Menu not available';
+                    const emoji = getEmojiForMeal(mealName);
+                    currentMealContentEl.innerHTML = `
+                        <p class="text-sm text-gray-500">${currentMeal} is being served</p>
+                        <p class="meal-item">${emoji}${mealName}</p>
+                    `;
+                } else {
+                    currentMealContentEl.innerHTML = `<p class="meal-item text-red-600">💤 Mess is Closed</p>`;
+                }
+
+                let nextMealInfo = getNextMeal(currentDayName, currentHour);
+                if (nextMealInfo) {
+                    const { day, meal, time } = nextMealInfo;
+                    const mealName = menuData[day]?.[meal] || 'Menu not available';
+                    const emoji = getEmojiForMeal(mealName);
+                    nextMealContentEl.innerHTML = `
+                        <p class="text-sm text-gray-500">${day} ${meal} at ${time}</p>
+                        <p class="meal-item">${emoji}${mealName}</p>
+                    `;
+                } else {
+                    nextMealContentEl.innerHTML = `<p class="meal-item">Could not determine next meal.</p>`;
+                }
+            }
+
+            function getNextMeal(currentDayName, currentHour) {
+                const mealOrder = ["Breakfast", "Lunch", "Snacks", "Dinner"];
+                let currentDayIndex = DAYS.indexOf(currentDayName);
+
+                for (const meal of mealOrder) {
+                    if (currentHour < MEAL_TIMES[meal].start) {
+                        return { day: currentDayName, meal, time: formatTime(MEAL_TIMES[meal].start) };
+                    }
+                }
+
+                const nextDayIndex = (currentDayIndex + 1) % 7;
+                const nextDayName = DAYS[nextDayIndex];
+                return { day: nextDayName, meal: "Breakfast", time: formatTime(MEAL_TIMES.Breakfast.start) };
+            }
+
+            function setupSearchListeners() {
+                const searchInputs = [daySelectEl, ...mealSelectContainer.querySelectorAll('input[name="meal"]')];
+                searchInputs.forEach(input => {
+                    input.addEventListener('change', performSearch);
+                });
+            }
+
+            function performSearch() {
+                const selectedDay = daySelectEl.value;
+                const selectedMealRadio = mealSelectContainer.querySelector('input[name="meal"]:checked');
+                
+                if (!selectedDay || !selectedMealRadio) {
+                    searchResultEl.innerHTML = '<p class="text-gray-500">Please select both a day and a meal.</p>';
+                    return;
+                }
+                const selectedMeal = selectedMealRadio.value;
+                
+                const result = menuData[selectedDay]?.[selectedMeal] || 'Menu not available for this selection.';
+                const emoji = getEmojiForMeal(result);
+                searchResultEl.innerHTML = `<p class="meal-item text-orange-800 font-semibold">${emoji}${result}</p>`;
+            }
+
+            function formatTime(decimalHour) {
+                let hours = Math.floor(decimalHour);
+                let minutes = Math.round((decimalHour - hours) * 60);
+                const ampm = hours >= 12 ? 'PM' : 'AM';
+                hours = hours % 12;
+                hours = hours ? hours : 12;
+                minutes = minutes < 10 ? '0' + minutes : minutes;
+                return `${hours}:${minutes} ${ampm}`;
+            }
+
+            fetchAndProcessMenu();
+            setInterval(updateLiveStatus, 30000); 
+        });
+    </script>
+</body>
+</html>
