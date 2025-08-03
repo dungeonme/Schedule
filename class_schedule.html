@@ -34,6 +34,9 @@
             margin-bottom: 0.75rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             border-left: 5px solid #4A90E2; /* Accent color for visual flair */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .btn {
             background-color: #4A90E2;
@@ -71,6 +74,21 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .add-to-calendar-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: background-color 0.2s;
+        }
+        .add-to-calendar-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -93,7 +111,10 @@
                     <div id="searchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
                 </div>
                 <div id="selectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
-                <button id="updateScheduleBtn" class="btn w-full">Update My Schedule</button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button id="updateScheduleBtn" class="btn w-full">Update My Schedule</button>
+                    <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight">Download my latest custom calendar</button>
+                </div>
             </div>
 
             <!-- Today & Tomorrow -->
@@ -143,12 +164,14 @@
     
     <script>
         // --- APPLICATION LOGIC ---
-        const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:D1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+        const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
         
         let allSheetData = [];
         let enrolledClasses = ['IBA (S2)', 'DBTS (S2)', 'B2B', 'DOPM', 'SAPM (S2)'];
         let activeUpcomingView = 'dayWise';
         let allClasses = [];
+        let venueMap = {};
+        let professorMap = {};
 
         // --- UTILITY FUNCTIONS ---
         function setConnectionStatus(isConnected, message = 'Connected') {
@@ -171,7 +194,6 @@
             if (parts.length === 3) {
                 const [month, day, year] = parts.map(p => parseInt(p, 10));
                 if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
-                    // Assuming MM/DD/YYYY format
                     return new Date(year, month - 1, day);
                 }
             }
@@ -193,6 +215,108 @@
                 };
             }
             return { class: classString.trim(), instructor: '' };
+        }
+        
+        function parseTime(timeStr) {
+            if (!timeStr) return { hours: NaN, minutes: NaN };
+            const parts = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+            if (!parts) return { hours: NaN, minutes: NaN };
+            let hours = parseInt(parts[1], 10);
+            const minutes = parseInt(parts[2], 10);
+            const modifier = parts[3];
+            if (isNaN(hours) || isNaN(minutes)) return { hours: NaN, minutes: NaN };
+            if (modifier) {
+                if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12;
+                if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+            }
+            return { hours, minutes };
+        }
+
+        // --- ICS FILE GENERATION ---
+        function downloadICS(filename, content) {
+            const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function toUTCFormat(date) {
+            return date.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
+        }
+
+        function createGoogleCalendarLink(cls) {
+            const classDate = parseDate(cls.date);
+            if (!classDate) return '#';
+            const timeParts = (cls.time || '').split('-').map(t => t.trim());
+            if (timeParts.length < 2) return '#';
+            const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
+            const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
+            if (isNaN(startHours) || isNaN(endHours)) return '#';
+            const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHours, startMinutes);
+            const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHours, endMinutes);
+            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return '#';
+            const baseURL = 'https://www.google.com/calendar/render?action=TEMPLATE';
+            const params = new URLSearchParams({
+                text: cls.class,
+                dates: `${toUTCFormat(startDate)}/${toUTCFormat(endDate)}`,
+                details: `Professor: ${cls.professor || 'N/A'}`,
+                location: cls.location || 'Venue not listed'
+            });
+            return `${baseURL}&${params.toString()}`;
+        }
+        
+        function generateMonthlyICS() {
+            if (enrolledClasses.length === 0) {
+                showToast('Please select your subjects first.', 'error');
+                return;
+            }
+            const today = new Date();
+            const nextMonth = new Date();
+            nextMonth.setDate(today.getDate() + 30);
+            const eventsForNextMonth = allSheetData
+                .map(row => {
+                    const classDate = parseDate(row[0]);
+                    const classInfo = parseClassInfo(row[2] || '');
+                    if (classDate && classDate >= today && classDate <= nextMonth && enrolledClasses.includes(classInfo.class)) {
+                        return {
+                            date: row[0], time: row[1], class: classInfo.class,
+                            instructor: classInfo.instructor, 
+                            location: venueMap[classInfo.class],
+                            professor: professorMap[classInfo.class]
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
+            if (eventsForNextMonth.length === 0) {
+                showToast('No classes found for your subjects in the next 30 days.');
+                return;
+            }
+            let icsEvents = eventsForNextMonth.map(cls => {
+                const classDate = parseDate(cls.date);
+                if (!classDate) return '';
+                const timeParts = (cls.time || '').split('-').map(t => t.trim());
+                if (timeParts.length < 2) return '';
+                const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
+                const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
+                if (isNaN(startHours) || isNaN(endHours)) return '';
+                const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHours, startMinutes);
+                const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHours, endMinutes);
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return '';
+                const uid = `${cls.class.replace(/\s+/g, '')}-${startDate.toISOString()}`;
+                return [
+                    'BEGIN:VEVENT', `UID:${uid}`, `SUMMARY:${cls.class}`, `DTSTAMP:${toUTCFormat(new Date())}`,
+                    `DTSTART;TZID=Asia/Kolkata:${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2,'0')}${startDate.getDate().toString().padStart(2,'0')}T${startDate.getHours().toString().padStart(2,'0')}${startDate.getMinutes().toString().padStart(2,'0')}00`,
+                    `DTEND;TZID=Asia/Kolkata:${endDate.getFullYear()}${(endDate.getMonth()+1).toString().padStart(2,'0')}${endDate.getDate().toString().padStart(2,'0')}T${endDate.getHours().toString().padStart(2,'0')}${endDate.getMinutes().toString().padStart(2,'0')}00`,
+                    `LOCATION:${cls.location || 'Venue not listed'}`, `DESCRIPTION:Professor: ${cls.professor || 'N/A'}`, 'END:VEVENT'
+                ].join('\r\n');
+            }).join('\r\n');
+            const icsHeader = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MyClassSchedule//EN', 'BEGIN:VTIMEZONE', 'TZID:Asia/Kolkata', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:+0530', 'TZOFFSETTO:+0530', 'TZNAME:IST', 'END:STANDARD', 'END:VTIMEZONE'].join('\r\n');
+            const icsFooter = 'END:VCALENDAR';
+            const fullIcsContent = `${icsHeader}\r\n${icsEvents}\r\n${icsFooter}`;
+            downloadICS('my_schedule.ics', fullIcsContent);
         }
 
         // --- LOCALSTORAGE FUNCTIONS ---
@@ -226,10 +350,13 @@
             }
             container.innerHTML = classes.map(cls => `
                 <div class="class-card">
-                    <p class="font-bold text-lg">${cls.class}</p>
-                    <p class="opacity-90">🕒 ${cls.time}</p>
-                    <p class="opacity-90">📍 ${cls.location || 'N/A'}</p>
-                    ${cls.instructor ? `<p class="opacity-90">👨‍🏫 ${cls.instructor}</p>` : ''}
+                    <div>
+                        <p class="font-bold text-lg">${cls.class}</p>
+                        <p class="opacity-90">🕒 ${cls.time || 'N/A'}</p>
+                        <p class="opacity-90">👨‍🏫 ${cls.professor || 'Not listed'}</p>
+                        <p class="opacity-90">📍 ${cls.location || 'Not listed'}</p>
+                    </div>
+                    <a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn" title="Add to Google Calendar">🗓️</a>
                 </div>
             `).join('');
         }
@@ -239,22 +366,16 @@
             const container = document.getElementById('upcomingClassesContainer');
             const dayWiseBtn = document.getElementById('dayWiseBtn');
             const subjectWiseBtn = document.getElementById('subjectWiseBtn');
-
             dayWiseBtn.classList.toggle('active', activeUpcomingView === 'dayWise');
             dayWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'dayWise');
             subjectWiseBtn.classList.toggle('active', activeUpcomingView === 'subjectWise');
             subjectWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'subjectWise');
-
             if (allSheetData.length === 0) {
                 container.innerHTML = '<div class="loader"></div>';
                 return;
             }
-
-            if (activeUpcomingView === 'dayWise') {
-                renderUpcomingDayWise(container);
-            } else {
-                renderUpcomingSubjectWise(container);
-            }
+            if (activeUpcomingView === 'dayWise') renderUpcomingDayWise(container);
+            else renderUpcomingSubjectWise(container);
         }
 
         function renderUpcomingDayWise(container) {
@@ -270,8 +391,11 @@
                             <h3 class="font-bold border-b pb-1 mb-2">${targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
                             ${classes.map(cls => `
                                 <div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400">
-                                    <p class="font-bold">${cls.class}</p>
-                                    <p class="text-sm">🕒 ${cls.time} | 📍 ${cls.location || 'N/A'}</p>
+                                    <div>
+                                        <p class="font-bold">${cls.class}</p>
+                                        <p class="text-sm">🕒 ${cls.time || 'N/A'} | 👨‍🏫 ${cls.professor || 'N/A'} | 📍 ${cls.location || 'N/A'}</p>
+                                    </div>
+                                    <a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn !bg-gray-200" title="Add to Google Calendar">🗓️</a>
                                 </div>
                             `).join('')}
                         </div>
@@ -284,7 +408,6 @@
         function renderUpcomingSubjectWise(container) {
             const today = new Date();
             today.setHours(0,0,0,0);
-
             const upcomingBySubject = enrolledClasses.map(subject => {
                 const nextTwo = allSheetData
                     .filter(row => {
@@ -294,12 +417,16 @@
                     .sort((a,b) => {
                         const dateA = parseDate(a[0]);
                         const dateB = parseDate(b[0]);
-                        return dateA - dateB || a[1].localeCompare(b[1]);
+                        if (dateA - dateB !== 0) return dateA - dateB;
+                        const timeA = parseTime((a[1] || '').split('-')[0].trim());
+                        const timeB = parseTime((b[1] || '').split('-')[0].trim());
+                        if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
+                        if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
+                        return timeA.minutes - timeB.minutes;
                     })
                     .slice(0, 2);
                 return { subject, nextTwo };
             });
-
             container.innerHTML = `
                 <table class="w-full text-left">
                     <thead><tr class="border-b"><th class="p-2">Subject</th><th class="p-2">Next Class</th><th class="p-2">2nd Next</th></tr></thead>
@@ -338,37 +465,63 @@
                     const classInfo = parseClassInfo(row[2] || '');
                     return {
                         date: row[0], time: row[1], class: classInfo.class,
-                        instructor: classInfo.instructor, location: row[3]
+                        instructor: classInfo.instructor, 
+                        location: venueMap[classInfo.class],
+                        professor: professorMap[classInfo.class]
                     };
                 })
-                .sort((a, b) => a.time.localeCompare(b.time));
+                .sort((a, b) => {
+                    const timeA = parseTime((a.time || '').split('-')[0].trim());
+                    const timeB = parseTime((b.time || '').split('-')[0].trim());
+                    if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
+                    if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
+                    return timeA.minutes - timeB.minutes;
+                });
         }
 
         async function refreshData() {
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.classList.add('animate-spin');
-            
             try {
                 const response = await fetch(API_URL);
-                if (!response.ok) throw new Error('Network response was not ok');
+                if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
                 const data = await response.json();
                 allSheetData = data.values || [];
                 setConnectionStatus(true, `Last updated: ${new Date().toLocaleTimeString()}`);
 
+                // Build the venue and professor maps
+                venueMap = {};
+                professorMap = {};
+                allSheetData.slice(1).forEach(row => {
+                    const subject = row[9] ? row[9].trim() : null; // Column J
+                    const professor = row[10] ? row[10].trim() : null; // Column K
+                    const venue = row[11] ? row[11].trim() : null; // Column L
+                    if (subject) {
+                        if (professor && !professorMap[subject]) professorMap[subject] = professor;
+                        if (venue && !venueMap[subject]) venueMap[subject] = venue;
+                    }
+                });
+
+                const lastUpdatedDate = allSheetData[0] ? allSheetData[0][6] : null; // G1 is at index 6
+                const downloadBtn = document.getElementById('downloadMonthBtn');
+                if (lastUpdatedDate) {
+                    downloadBtn.innerHTML = `Download my latest custom calendar <span class="text-xs font-normal block">(Updated: ${lastUpdatedDate})</span>`;
+                } else {
+                    downloadBtn.textContent = 'Download my latest custom calendar';
+                }
+
                 const uniqueClasses = new Set(allSheetData.slice(1).map(row => parseClassInfo(row[2] || '').class).filter(Boolean));
                 allClasses = [...uniqueClasses].sort();
-
                 const today = new Date();
                 const tomorrow = new Date();
                 tomorrow.setDate(today.getDate() + 1);
-
                 renderClasses(filterAndSortClasses(allSheetData, today), 'todayClasses');
                 renderClasses(filterAndSortClasses(allSheetData, tomorrow), 'tomorrowClasses');
                 renderUpcomingView(activeUpcomingView, true);
-
             } catch (error) {
+                console.error("Failed to fetch Google Sheet data:", error);
                 setConnectionStatus(false);
-                showToast('Failed to refresh data.', 'error');
+                showToast('Failed to refresh data. Check sheet permissions.', 'error');
             } finally {
                 refreshBtn.classList.remove('animate-spin');
             }
@@ -399,7 +552,6 @@
         function setupEventListeners() {
             const searchInput = document.getElementById('subjectSearchInput');
             const resultsContainer = document.getElementById('searchResults');
-            
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.toLowerCase();
                 if (!query) {
@@ -410,7 +562,6 @@
                 resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
                 resultsContainer.classList.remove('hidden');
             });
-
             resultsContainer.addEventListener('click', (e) => {
                 if (e.target.dataset.subject) {
                     enrolledClasses.push(e.target.dataset.subject);
@@ -420,21 +571,19 @@
                     resultsContainer.classList.add('hidden');
                 }
             });
-
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.relative')) {
                     resultsContainer.classList.add('hidden');
                 }
             });
-
             document.getElementById('selectedTagsContainer').addEventListener('click', (event) => {
                 const button = event.target.closest('.remove-tag-btn');
                 if (button) {
                     removeTag(button.dataset.subject);
                 }
             });
-
             document.getElementById('updateScheduleBtn').addEventListener('click', updateEnrolledClassesAndRefresh);
+            document.getElementById('downloadMonthBtn').addEventListener('click', generateMonthlyICS);
             document.getElementById('refreshBtn').addEventListener('click', refreshData);
             document.getElementById('dayWiseBtn').addEventListener('click', () => renderUpcomingView('dayWise'));
             document.getElementById('subjectWiseBtn').addEventListener('click', () => renderUpcomingView('subjectWise'));
@@ -448,9 +597,7 @@
             tomorrow.setDate(today.getDate() + 1);
             document.getElementById('tomorrowDate').textContent = `(${tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
             document.getElementById('datePicker').valueAsDate = today;
-
             setupEventListeners();
-
             const savedClasses = fetchUserPreferences();
             if (savedClasses && savedClasses.length > 0) {
                 enrolledClasses = savedClasses;
