@@ -12,7 +12,7 @@
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background-color: #F0F4F8; /* A cool, light blue-gray background */
+            background-color: #F0F4F8;
         }
         .card {
             background-color: white;
@@ -24,16 +24,16 @@
         }
         .card-title {
             font-weight: 600;
-            color: #2D3748; /* A dark, professional blue */
+            color: #2D3748;
         }
         .class-card {
-            background-color: #4A5568; /* Solid, high-contrast background */
+            background-color: #4A5568;
             color: white;
             padding: 1rem;
             border-radius: 0.75rem;
             margin-bottom: 0.75rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border-left: 5px solid #4A90E2; /* Accent color for visual flair */
+            border-left: 5px solid #4A90E2;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -74,6 +74,32 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* --- NEW CALENDAR STYLES --- */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-day {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: #F7FAFC;
+            color: #A0AEC0;
+        }
+        .calendar-day-header {
+            font-weight: 600;
+            color: #4A5568;
+            background-color: transparent;
+        }
+        .day-free { background-color: #C6F6D5; color: #2F855A; }
+        .day-bunk { background-color: #FEFCBF; color: #B7791F; cursor: help; }
+        .day-busy { background-color: #FED7D7; color: #C53030; }
+        .day-weekend { background-color: #EDF2F7; color: #718096; }
         .add-to-calendar-btn {
             background-color: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
@@ -149,9 +175,21 @@
                 <div id="selectedDateClasses" class="mt-4"></div>
             </div>
             
-            <!-- Back to Home Button -->
-            <div class="text-center mt-8">
-                <a href="./index.html" class="inline-block bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">🏠 Back to Home</a>
+            <!-- Match Free Time with Friend -->
+            <div class="card">
+                <h2 class="card-title text-xl mb-4">🤝 Match Free Time with a Friend</h2>
+                <p class="text-sm text-gray-500 mb-4">Enter your friend's subjects to generate a visual calendar of your common free time during the term (10 Sep - 6 Dec).</p>
+                
+                <h3 class="font-semibold text-lg mb-2 text-gray-700">🧑‍🤝‍🧑 Friend's Subjects</h3>
+                <div class="relative mb-4">
+                    <input type="text" id="friendSubjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add friend's subject...">
+                    <div id="friendSearchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
+                </div>
+                <div id="friendSelectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
+
+                <button id="compareSchedulesBtn" class="btn w-full !bg-purple-500 hover:!bg-purple-600">Generate Visual Calendar</button>
+                
+                <div id="comparisonResults" class="mt-4"></div>
             </div>
 
         </main>
@@ -167,19 +205,14 @@
         const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
         
         let allSheetData = [];
-        let enrolledClasses = ['IBA (S2)', 'DBTS (S2)', 'B2B', 'DOPM', 'SAPM (S2)'];
+        let enrolledClasses = [];
+        let friendEnrolledClasses = [];
         let activeUpcomingView = 'dayWise';
         let allClasses = [];
         let venueMap = {};
         let professorMap = {};
 
         // --- UTILITY FUNCTIONS ---
-        function setConnectionStatus(isConnected, message = 'Connected') {
-            const statusEl = document.getElementById('connectionStatus');
-            statusEl.textContent = isConnected ? message : '⚠️ Connection Failed';
-            statusEl.className = isConnected ? 'text-green-500 mt-2' : 'text-red-500 mt-2';
-        }
-
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
             toast.textContent = message;
@@ -194,7 +227,8 @@
             if (parts.length === 3) {
                 const [month, day, year] = parts.map(p => parseInt(p, 10));
                 if (!isNaN(month) && !isNaN(day) && !isNaN(year)) {
-                    return new Date(year, month - 1, day);
+                    const fullYear = year < 100 ? 2000 + year : year;
+                    return new Date(fullYear, month - 1, day);
                 }
             }
             return null;
@@ -206,17 +240,10 @@
         }
 
         function parseClassInfo(classString) {
-            if (!classString) return { class: 'Unnamed Class', instructor: '' };
-            const separatorIndex = classString.indexOf(' - ');
-            if (separatorIndex !== -1) {
-                return {
-                    class: classString.substring(0, separatorIndex).trim(),
-                    instructor: classString.substring(separatorIndex + 3).trim()
-                };
-            }
-            return { class: classString.trim(), instructor: '' };
+            if (!classString) return { class: 'Unnamed Class' };
+            return { class: classString.trim() };
         }
-        
+
         function parseTime(timeStr) {
             if (!timeStr) return { hours: NaN, minutes: NaN };
             const parts = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
@@ -280,25 +307,21 @@
                 .map(row => {
                     const classDate = parseDate(row[0]);
                     const classInfo = parseClassInfo(row[2] || '');
-                    if (classDate && classDate >= today && classDate <= nextMonth && enrolledClasses.includes(classInfo.class)) {
+                    const classNameFromSheetLower = classInfo.class.toLowerCase();
+
+                    if (classDate && classDate >= today && classDate <= nextMonth && enrolledClasses.some(enrolled => classNameFromSheetLower.includes(enrolled.toLowerCase()))) {
                         return {
                             date: row[0], time: row[1], class: classInfo.class,
-                            instructor: classInfo.instructor, 
-                            location: venueMap[classInfo.class],
-                            professor: professorMap[classInfo.class]
+                            location: venueMap[classInfo.class], professor: professorMap[classInfo.class]
                         };
                     }
                     return null;
                 }).filter(Boolean);
-            if (eventsForNextMonth.length === 0) {
-                showToast('No classes found for your subjects in the next 30 days.');
-                return;
-            }
+
+            if (eventsForNextMonth.length === 0) { showToast('No classes found for your subjects in the next 30 days.'); return; }
             let icsEvents = eventsForNextMonth.map(cls => {
-                const classDate = parseDate(cls.date);
-                if (!classDate) return '';
-                const timeParts = (cls.time || '').split('-').map(t => t.trim());
-                if (timeParts.length < 2) return '';
+                const classDate = parseDate(cls.date); if (!classDate) return '';
+                const timeParts = (cls.time || '').split('-').map(t => t.trim()); if (timeParts.length < 2) return '';
                 const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
                 const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
                 if (isNaN(startHours) || isNaN(endHours)) return '';
@@ -315,39 +338,25 @@
             }).join('\r\n');
             const icsHeader = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MyClassSchedule//EN', 'BEGIN:VTIMEZONE', 'TZID:Asia/Kolkata', 'BEGIN:STANDARD', 'DTSTART:19700101T000000', 'TZOFFSETFROM:+0530', 'TZOFFSETTO:+0530', 'TZNAME:IST', 'END:STANDARD', 'END:VTIMEZONE'].join('\r\n');
             const icsFooter = 'END:VCALENDAR';
-            const fullIcsContent = `${icsHeader}\r\n${icsEvents}\r\n${icsFooter}`;
-            downloadICS('my_schedule.ics', fullIcsContent);
+            downloadICS('my_schedule.ics', `${icsHeader}\r\n${icsEvents}\r\n${icsFooter}`);
         }
 
         // --- LOCALSTORAGE FUNCTIONS ---
         function saveUserPreferences(classesToSave) {
-            try {
-                localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave));
-                showToast('Schedule preferences saved!');
-            } catch (e) {
-                console.error("Error saving to localStorage:", e);
-                showToast('Failed to save preferences.', 'error');
-            }
+            try { localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave)); showToast('Schedule preferences saved!'); } 
+            catch (e) { console.error("Error saving to localStorage:", e); showToast('Failed to save preferences.', 'error'); }
         }
 
         function fetchUserPreferences() {
-            try {
-                const savedClasses = localStorage.getItem('enrolledClasses');
-                return savedClasses ? JSON.parse(savedClasses) : null;
-            } catch (e) {
-                console.error("Error fetching from localStorage:", e);
-                return null;
-            }
+            try { const savedClasses = localStorage.getItem('enrolledClasses'); return savedClasses ? JSON.parse(savedClasses) : null; } 
+            catch (e) { console.error("Error fetching from localStorage:", e); return null; }
         }
 
         // --- RENDERING FUNCTIONS ---
         function renderClasses(classes, containerId) {
             const container = document.getElementById(containerId);
             if (!container) return;
-            if (classes.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled!</p>';
-                return;
-            }
+            if (classes.length === 0) { container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled!</p>'; return; }
             container.innerHTML = classes.map(cls => `
                 <div class="class-card">
                     <div>
@@ -370,10 +379,7 @@
             dayWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'dayWise');
             subjectWiseBtn.classList.toggle('active', activeUpcomingView === 'subjectWise');
             subjectWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'subjectWise');
-            if (allSheetData.length === 0) {
-                container.innerHTML = '<div class="loader"></div>';
-                return;
-            }
+            if (allSheetData.length === 0) { container.innerHTML = '<div class="loader"></div>'; return; }
             if (activeUpcomingView === 'dayWise') renderUpcomingDayWise(container);
             else renderUpcomingSubjectWise(container);
         }
@@ -386,20 +392,16 @@
                 targetDate.setDate(today.getDate() + i);
                 const classes = filterAndSortClasses(allSheetData, targetDate);
                 if (classes.length > 0) {
-                    content += `
-                        <div class="mb-4">
-                            <h3 class="font-bold border-b pb-1 mb-2">${targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
-                            ${classes.map(cls => `
-                                <div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400">
-                                    <div>
-                                        <p class="font-bold">${cls.class}</p>
-                                        <p class="text-sm">🕒 ${cls.time || 'N/A'} | 👨‍🏫 ${cls.professor || 'N/A'} | 📍 ${cls.location || 'N/A'}</p>
-                                    </div>
-                                    <a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn !bg-gray-200" title="Add to Google Calendar">🗓️</a>
+                    content += `<div class="mb-4">
+                        <h3 class="font-bold border-b pb-1 mb-2">${targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
+                        ${classes.map(cls => `<div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400">
+                                <div>
+                                    <p class="font-bold">${cls.class}</p>
+                                    <p class="text-sm">🕒 ${cls.time || 'N/A'} | 👨‍🏫 ${cls.professor || 'N/A'} | 📍 ${cls.location || 'N/A'}</p>
                                 </div>
-                            `).join('')}
-                        </div>
-                    `;
+                                <a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn !bg-gray-200" title="Add to Google Calendar">🗓️</a>
+                            </div>`).join('')}
+                        </div>`;
                 }
             }
             container.innerHTML = content || '<p class="text-gray-500 text-center py-4">🎉 No classes in the next 7 days!</p>';
@@ -409,119 +411,220 @@
             const today = new Date();
             today.setHours(0,0,0,0);
             const upcomingBySubject = enrolledClasses.map(subject => {
-                const nextTwo = allSheetData
-                    .filter(row => {
-                        const classDate = parseDate(row[0]);
-                        return parseClassInfo(row[2] || '').class === subject && classDate && classDate >= today;
-                    })
-                    .sort((a,b) => {
-                        const dateA = parseDate(a[0]);
-                        const dateB = parseDate(b[0]);
-                        if (dateA - dateB !== 0) return dateA - dateB;
-                        const timeA = parseTime((a[1] || '').split('-')[0].trim());
-                        const timeB = parseTime((b[1] || '').split('-')[0].trim());
-                        if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
-                        if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
-                        return timeA.minutes - timeB.minutes;
-                    })
-                    .slice(0, 2);
-                return { subject, nextTwo };
-            });
-            container.innerHTML = `
-                <table class="w-full text-left">
-                    <thead><tr class="border-b"><th class="p-2">Subject</th><th class="p-2">Next Class</th><th class="p-2">2nd Next</th></tr></thead>
-                    <tbody>
-                    ${upcomingBySubject.map(({ subject, nextTwo }) => `
-                        <tr class="border-b">
-                            <td class="p-2 font-semibold">${subject}</td>
-                            <td class="p-2 text-sm">${nextTwo[0] ? `${nextTwo[0][0]} at ${nextTwo[0][1]}` : 'N/A'}</td>
-                            <td class="p-2 text-sm">${nextTwo[1] ? `${nextTwo[1][0]} at ${nextTwo[1][1]}` : 'N/A'}</td>
-                        </tr>
-                    `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        function renderSelectedTags() {
-            const container = document.getElementById('selectedTagsContainer');
-            container.innerHTML = enrolledClasses.map(subject => `
-                <div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm">
-                    <span>${subject}</span>
-                    <button class="font-bold remove-tag-btn" data-subject="${subject}">x</button>
-                </div>
-            `).join('');
-        }
-
-        // --- DATA & CORE LOGIC ---
-        function filterAndSortClasses(data, targetDate) {
-            return data
-                .filter(row => {
+                const nextTwo = allSheetData.filter(row => {
                     const classDate = parseDate(row[0]);
-                    const className = parseClassInfo(row[2] || '').class;
-                    return classDate && isSameDay(classDate, targetDate) && enrolledClasses.includes(className);
-                })
-                .map(row => {
-                    const classInfo = parseClassInfo(row[2] || '');
-                    return {
-                        date: row[0], time: row[1], class: classInfo.class,
-                        instructor: classInfo.instructor, 
-                        location: venueMap[classInfo.class],
-                        professor: professorMap[classInfo.class]
-                    };
-                })
-                .sort((a, b) => {
-                    const timeA = parseTime((a.time || '').split('-')[0].trim());
-                    const timeB = parseTime((b.time || '').split('-')[0].trim());
+                    if (!classDate || !row[2]) return false; 
+                    const classNameFromSheet = parseClassInfo(row[2]).class;
+                    return classNameFromSheet.toLowerCase().includes(subject.toLowerCase()) && classDate >= today;
+                }).sort((a,b) => {
+                    const dateA = parseDate(a[0]), dateB = parseDate(b[0]);
+                    if (dateA - dateB !== 0) return dateA - dateB;
+                    const timeA = parseTime((a[1] || '').split('-')[0].trim()), timeB = parseTime((b[1] || '').split('-')[0].trim());
                     if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
                     if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
                     return timeA.minutes - timeB.minutes;
+                }).slice(0, 2);
+                return { subject, nextTwo };
+            });
+            container.innerHTML = `<table class="w-full text-left">
+                <thead><tr class="border-b"><th class="p-2">Subject</th><th class="p-2">Next Class</th><th class="p-2">2nd Next</th></tr></thead>
+                <tbody>${upcomingBySubject.map(({ subject, nextTwo }) => `<tr class="border-b">
+                        <td class="p-2 font-semibold">${subject}</td>
+                        <td class="p-2 text-sm">${nextTwo[0] ? `${nextTwo[0][0]} at ${nextTwo[0][1]}` : 'N/A'}</td>
+                        <td class="p-2 text-sm">${nextTwo[1] ? `${nextTwo[1][0]} at ${nextTwo[1][1]}` : 'N/A'}</td>
+                    </tr>`).join('')}</tbody>
+            </table>`;
+        }
+        
+        // --- DATA & CORE LOGIC ---
+        function filterAndSortClasses(data, targetDate) {
+            return data.filter(row => {
+                const classDate = parseDate(row[0]);
+                if (!classDate || !row[2]) return false;
+                const classNameFromSheet = parseClassInfo(row[2]).class.toLowerCase();
+                return isSameDay(classDate, targetDate) && enrolledClasses.some(enrolledSubject => classNameFromSheet.includes(enrolledSubject.toLowerCase()));
+            }).map(row => {
+                const classInfo = parseClassInfo(row[2]);
+                const classNameLower = classInfo.class.toLowerCase();
+                const matchingEnrolledClass = enrolledClasses.find(enrolled => classNameLower.includes(enrolled.toLowerCase()));
+                return {
+                    date: row[0], time: row[1], class: classInfo.class,
+                    location: venueMap[matchingEnrolledClass], professor: professorMap[matchingEnrolledClass]
+                };
+            }).sort((a, b) => {
+                const timeA = parseTime((a.time || '').split('-')[0].trim()), timeB = parseTime((b.time || '').split('-')[0].trim());
+                if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
+                if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
+                return timeA.minutes - timeB.minutes;
+            });
+        }
+        
+        // --- SCHEDULE COMPARISON & VISUALIZATION ---
+        function renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate) {
+            const resultsContainer = document.getElementById('comparisonResults');
+            let calendarHtml = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs">
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Free</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 mr-2"></span> Bunkable</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Weekend/Holiday</div>
+            </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
+
+            for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
+                const date = new Date(termStartDate.getFullYear(), month, 1);
+                const monthName = date.toLocaleString('default', { month: 'long' });
+                
+                calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${monthName} 2025</h4>`;
+                calendarHtml += `<div class="calendar-grid">`;
+                'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => {
+                    calendarHtml += `<div class="calendar-day-header text-center">${day}</div>`;
                 });
+
+                const firstDayOfMonth = date.getDay();
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarHtml += `<div></div>`;
+                }
+
+                while (date.getMonth() === month) {
+                    const dateKey = date.toISOString().split('T')[0];
+                    const status = dailyStatuses[dateKey] || { type: 'outside' };
+                    let dayClass = 'calendar-day';
+                    let title = '';
+                    const dayOfWeek = date.getDay();
+
+                    if (dayOfWeek === 0 || dayOfWeek === 6) {
+                        dayClass += ' day-weekend';
+                    } else if (date < termStartDate || date > termEndDate) {
+                         dayClass += ' ';
+                    } else {
+                        switch (status.type) {
+                            case 'free': dayClass += ' day-free'; title = 'Completely Free!'; break;
+                            case 'bunk': dayClass += ' day-bunk'; title = `Bunkable! ${status.who} must miss: ${status.class}`; break;
+                            case 'busy': dayClass += ' day-busy'; title = 'Busy Day'; break;
+                            default: dayClass += ' day-free'; title = 'Completely Free!';
+                        }
+                    }
+                    calendarHtml += `<div class="${dayClass}" title="${title}">${date.getDate()}</div>`;
+                    date.setDate(date.getDate() + 1);
+                }
+                calendarHtml += `</div></div>`;
+            }
+            calendarHtml += `</div>`;
+
+            // --- Bunk Details List Organized by Month ---
+            let bunkListHtml = '';
+            const bunkDays = Object.entries(dailyStatuses)
+                .filter(([_, status]) => status.type === 'bunk')
+                .map(([dateKey, status]) => ({ date: new Date(dateKey + 'T00:00:00'), ...status }))
+                .sort((a, b) => a.date - b.date);
+
+            if (bunkDays.length > 0) {
+                bunkListHtml += `<h3 class="font-semibold text-lg mt-6 mb-2 text-gray-800">🤔 Bunking Opportunities Details:</h3>`;
+                const bunksByMonth = {};
+                bunkDays.forEach(day => {
+                    const monthName = day.date.toLocaleString('default', { month: 'long' });
+                    if (!bunksByMonth[monthName]) {
+                        bunksByMonth[monthName] = [];
+                    }
+                    bunksByMonth[monthName].push(day);
+                });
+
+                const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
+                for (const monthName in bunksByMonth) {
+                    bunkListHtml += `<h4 class="font-semibold text-md mt-4 mb-1 text-gray-700">${monthName}</h4>`;
+                    bunkListHtml += `<ul class="space-y-2 list-disc list-inside">`;
+                    bunksByMonth[monthName].forEach(day => {
+                        bunkListHtml += `<li class="text-sm text-yellow-800"><span class="font-semibold">${formatDate(day.date)}:</span> ${day.who} must miss class: <span class="font-semibold">${day.class}</span></li>`;
+                    });
+                    bunkListHtml += `</ul>`;
+                }
+            }
+
+            resultsContainer.innerHTML = calendarHtml + bunkListHtml;
+        }
+        
+        function compareSchedules() {
+            const resultsContainer = document.getElementById('comparisonResults');
+            resultsContainer.innerHTML = '<div class="loader"></div>';
+
+            if (enrolledClasses.length === 0 || friendEnrolledClasses.length === 0) {
+                showToast('Please select subjects for both yourself and your friend.', 'error');
+                resultsContainer.innerHTML = ''; return;
+            }
+
+            const termStartDate = new Date(2025, 8, 10);
+            const termEndDate = new Date(2025, 11, 6);
+            const dailyStatuses = {};
+
+            allSheetData.forEach(row => {
+                const classDate = parseDate(row[0]);
+                if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+                const dateKey = classDate.toISOString().split('T')[0];
+                if (!dailyStatuses[dateKey]) {
+                    dailyStatuses[dateKey] = { userClasses: 0, friendClasses: 0, details: [] };
+                }
+                const className = parseClassInfo(row[2]).class;
+                const classNameLower = className.toLowerCase();
+                if (enrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                    dailyStatuses[dateKey].userClasses++;
+                    dailyStatuses[dateKey].details.push({ who: 'You', class: className });
+                }
+                if (friendEnrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                    dailyStatuses[dateKey].friendClasses++;
+                    dailyStatuses[dateKey].details.push({ who: 'Friend', class: className });
+                }
+            });
+
+            Object.keys(dailyStatuses).forEach(dateKey => {
+                const day = dailyStatuses[dateKey];
+                const totalClasses = day.userClasses + day.friendClasses;
+                if (totalClasses === 0) day.type = 'free';
+                else if (totalClasses === 1) {
+                    day.type = 'bunk';
+                    day.who = day.details[0].who;
+                    day.class = day.details[0].class;
+                } else day.type = 'busy';
+            });
+
+            renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate);
         }
 
         async function refreshData() {
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.classList.add('animate-spin');
+            ['todayClasses', 'tomorrowClasses', 'upcomingClassesContainer'].forEach(id => document.getElementById(id).innerHTML = '<div class="loader"></div>');
             try {
                 const response = await fetch(API_URL);
-                if (!response.ok) throw new Error(`Network response was not ok. Status: ${response.status}`);
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
                 const data = await response.json();
                 allSheetData = data.values || [];
-                setConnectionStatus(true, `Last updated: ${new Date().toLocaleTimeString()}`);
-
-                // Build the venue and professor maps
-                venueMap = {};
-                professorMap = {};
+                
+                venueMap = {}; professorMap = {};
                 allSheetData.slice(1).forEach(row => {
-                    const subject = row[9] ? row[9].trim() : null; // Column J
-                    const professor = row[10] ? row[10].trim() : null; // Column K
-                    const venue = row[11] ? row[11].trim() : null; // Column L
+                    const subject = row[9] ? row[9].trim() : null;
+                    const professor = row[10] ? row[10].trim() : null;
+                    const venue = row[11] ? row[11].trim() : null;
                     if (subject) {
                         if (professor && !professorMap[subject]) professorMap[subject] = professor;
                         if (venue && !venueMap[subject]) venueMap[subject] = venue;
                     }
                 });
-
-                const lastUpdatedDate = allSheetData[0] ? allSheetData[0][6] : null; // G1 is at index 6
-                const downloadBtn = document.getElementById('downloadMonthBtn');
-                if (lastUpdatedDate) {
-                    downloadBtn.innerHTML = `Download my latest custom calendar <span class="text-xs font-normal block">(Updated: ${lastUpdatedDate})</span>`;
-                } else {
-                    downloadBtn.textContent = 'Download my latest custom calendar';
-                }
-
-                const uniqueClasses = new Set(allSheetData.slice(1).map(row => parseClassInfo(row[2] || '').class).filter(Boolean));
-                allClasses = [...uniqueClasses].sort();
-                const today = new Date();
+                
+                const uniqueMasterClasses = new Set(allSheetData.slice(1).map(row => row[9] ? row[9].trim() : null).filter(Boolean));
+                allClasses = [...uniqueMasterClasses].sort();
+                
+                document.getElementById('connectionStatus').textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
+                document.getElementById('connectionStatus').className = 'text-green-500 mt-2';
+                
+                renderClasses(filterAndSortClasses(allSheetData, new Date()), 'todayClasses');
                 const tomorrow = new Date();
-                tomorrow.setDate(today.getDate() + 1);
-                renderClasses(filterAndSortClasses(allSheetData, today), 'todayClasses');
+                tomorrow.setDate(tomorrow.getDate() + 1);
                 renderClasses(filterAndSortClasses(allSheetData, tomorrow), 'tomorrowClasses');
                 renderUpcomingView(activeUpcomingView, true);
+
             } catch (error) {
-                console.error("Failed to fetch Google Sheet data:", error);
-                setConnectionStatus(false);
-                showToast('Failed to refresh data. Check sheet permissions.', 'error');
+                console.error("Failed to fetch data:", error);
+                document.getElementById('connectionStatus').textContent = '⚠️ Connection Failed';
+                document.getElementById('connectionStatus').className = 'text-red-500 mt-2';
             } finally {
                 refreshBtn.classList.remove('animate-spin');
             }
@@ -529,81 +632,92 @@
 
         function fetchClassesForDate() {
             const dateStr = document.getElementById('datePicker').value;
-            if (!dateStr) {
-                showToast('Please select a date.', 'error');
-                return;
-            }
+            if (!dateStr) { showToast('Please select a date.', 'error'); return; }
             const [year, month, day] = dateStr.split('-').map(Number);
             const selectedDate = new Date(year, month - 1, day);
             renderClasses(filterAndSortClasses(allSheetData, selectedDate), 'selectedDateClasses');
         }
 
-        function removeTag(subjectToRemove) {
-            enrolledClasses = enrolledClasses.filter(s => s !== subjectToRemove);
-            renderSelectedTags();
-        }
-
-        function updateEnrolledClassesAndRefresh() {
-            saveUserPreferences(enrolledClasses);
-            refreshData();
-        }
-
         // --- EVENT LISTENERS & INITIALIZATION ---
-        function setupEventListeners() {
-            const searchInput = document.getElementById('subjectSearchInput');
-            const resultsContainer = document.getElementById('searchResults');
+        function setupSubjectSearch(inputId, resultsId, tagsId, targetArray) {
+            const searchInput = document.getElementById(inputId);
+            const resultsContainer = document.getElementById(resultsId);
+            const tagsContainer = document.getElementById(tagsId);
+
+            const renderTags = () => {
+                tagsContainer.innerHTML = targetArray.map(subject => `
+                    <div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm">
+                        <span>${subject}</span>
+                        <button class="font-bold remove-tag-btn" data-subject="${subject}" data-target="${tagsId}">x</button>
+                    </div>
+                `).join('');
+            };
+
             searchInput.addEventListener('input', () => {
                 const query = searchInput.value.toLowerCase();
-                if (!query) {
-                    resultsContainer.classList.add('hidden');
-                    return;
-                }
-                const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !enrolledClasses.includes(c));
+                if (!query) { resultsContainer.classList.add('hidden'); return; }
+                const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !targetArray.includes(c));
                 resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
-                resultsContainer.classList.remove('hidden');
+                resultsContainer.classList.toggle('hidden', filtered.length === 0);
             });
-            resultsContainer.addEventListener('click', (e) => {
+
+            resultsContainer.addEventListener('click', e => {
                 if (e.target.dataset.subject) {
-                    enrolledClasses.push(e.target.dataset.subject);
-                    enrolledClasses.sort();
-                    renderSelectedTags();
+                    targetArray.push(e.target.dataset.subject);
+                    targetArray.sort();
+                    renderTags();
                     searchInput.value = '';
                     resultsContainer.classList.add('hidden');
                 }
             });
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.relative')) {
-                    resultsContainer.classList.add('hidden');
-                }
-            });
-            document.getElementById('selectedTagsContainer').addEventListener('click', (event) => {
+             tagsContainer.addEventListener('click', event => {
                 const button = event.target.closest('.remove-tag-btn');
-                if (button) {
-                    removeTag(button.dataset.subject);
+                if (button && button.dataset.target === tagsId) {
+                    const subject = button.dataset.subject;
+                    const index = targetArray.indexOf(subject);
+                    if (index > -1) targetArray.splice(index, 1);
+                    renderTags();
                 }
             });
-            document.getElementById('updateScheduleBtn').addEventListener('click', updateEnrolledClassesAndRefresh);
-            document.getElementById('downloadMonthBtn').addEventListener('click', generateMonthlyICS);
-            document.getElementById('refreshBtn').addEventListener('click', refreshData);
-            document.getElementById('dayWiseBtn').addEventListener('click', () => renderUpcomingView('dayWise'));
-            document.getElementById('subjectWiseBtn').addEventListener('click', () => renderUpcomingView('subjectWise'));
-            document.getElementById('showScheduleBtn').addEventListener('click', fetchClassesForDate);
+            renderTags();
+            return renderTags;
         }
 
         function initialize() {
             const today = new Date();
             document.getElementById('todayDate').textContent = `(${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
-            const tomorrow = new Date();
-            tomorrow.setDate(today.getDate() + 1);
+            const tomorrow = new Date(); tomorrow.setDate(today.getDate() + 1);
             document.getElementById('tomorrowDate').textContent = `(${tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
             document.getElementById('datePicker').valueAsDate = today;
-            setupEventListeners();
+            
             const savedClasses = fetchUserPreferences();
-            if (savedClasses && savedClasses.length > 0) {
-                enrolledClasses = savedClasses;
-            }
-            renderSelectedTags();
-            refreshData();
+            if (savedClasses) enrolledClasses = savedClasses;
+
+            const renderUserTags = setupSubjectSearch('subjectSearchInput', 'searchResults', 'selectedTagsContainer', enrolledClasses);
+            const renderFriendTags = setupSubjectSearch('friendSubjectSearchInput', 'friendSearchResults', 'friendSelectedTagsContainer', friendEnrolledClasses);
+
+            document.addEventListener('click', e => {
+                if (!e.target.closest('.relative')) {
+                    document.getElementById('searchResults').classList.add('hidden');
+                    document.getElementById('friendSearchResults').classList.add('hidden');
+                }
+            });
+
+            document.getElementById('updateScheduleBtn').addEventListener('click', () => {
+                saveUserPreferences(enrolledClasses);
+                refreshData();
+            });
+            document.getElementById('downloadMonthBtn').addEventListener('click', generateMonthlyICS);
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+            document.getElementById('dayWiseBtn').addEventListener('click', () => renderUpcomingView('dayWise'));
+            document.getElementById('subjectWiseBtn').addEventListener('click', () => renderUpcomingView('subjectWise'));
+            document.getElementById('showScheduleBtn').addEventListener('click', fetchClassesForDate);
+            document.getElementById('compareSchedulesBtn').addEventListener('click', compareSchedules);
+
+            refreshData().then(() => {
+                renderUserTags();
+                renderFriendTags();
+            });
         }
 
         initialize();
