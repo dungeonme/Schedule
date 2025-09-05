@@ -98,6 +98,88 @@
 
         </main>
     </div>
+    <!-- Like card UI (mobile-friendly) -->
+<div class="card" id="likeCard" style="margin-top:12px">
+  <h3 style="margin:0 0 6px 0">❤️ Like the app</h3>
+  <p class="muted" style="margin:0 0 10px 0">Enter your roll number to show support (we'll anonymize it).</p>
+
+  <div style="display:flex;gap:8px">
+    <input id="rollInput" type="text" inputmode="text" placeholder="Your roll number" style="flex:1;padding:10px;border-radius:10px;border:1px solid #eee;font-weight:600" />
+    <button id="likeBtn" style="padding:10px 14px;border-radius:10px;background:#0b78d1;color:#fff;border:none;font-weight:700">Like</button>
+  </div>
+
+  <div id="likeMsg" class="muted" style="margin-top:8px"></div>
+
+  <div style="margin-top:10px;font-weight:700">Total likes: <span id="likeCount">—</span></div>
+  <div id="likeRecent" style="margin-top:8px;font-size:13px;color:#6b7280"></div>
+</div>
+
+<script>
+  const WEBAPP_URL = 'PASTE_YOUR_WEBAPP_URL_HERE'; // <- replace this
+  const rollInput = document.getElementById('rollInput');
+  const likeBtn = document.getElementById('likeBtn');
+  const likeMsg = document.getElementById('likeMsg');
+  const likeCount = document.getElementById('likeCount');
+  const likeRecent = document.getElementById('likeRecent');
+
+  // Validation: change regex to match your roll format
+  const rollRegex = /^[A-Za-z0-9\-]{3,40}$/;
+
+  async function refreshCount(){
+    try{
+      const res = await fetch(WEBAPP_URL);
+      if(!res.ok) throw new Error('network');
+      const j = await res.json();
+      likeCount.innerText = (j.count ?? 0);
+      if(Array.isArray(j.recent) && j.recent.length){
+        likeRecent.innerText = 'Recent: ' + j.recent.join(', ');
+      } else {
+        likeRecent.innerText = '';
+      }
+    }catch(e){
+      console.warn(e);
+    }
+  }
+
+  likeBtn.addEventListener('click', async ()=>{
+    const roll = rollInput.value.trim();
+    if(!rollRegex.test(roll)){
+      likeMsg.innerText = 'Enter a valid roll (3–40 letters/numbers).';
+      return;
+    }
+    likeMsg.innerText = 'Submitting…';
+    likeBtn.disabled = true;
+    try{
+      const res = await fetch(WEBAPP_URL, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({roll})
+      });
+      const j = await res.json();
+      if(!j || !j.ok){
+        likeMsg.innerText = 'Error: ' + (j && j.error ? j.error : 'unknown');
+      } else {
+        if(j.duplicate){
+          likeMsg.innerText = 'You already liked — thanks!';
+        } else {
+          likeMsg.innerText = 'Thanks — your like was recorded!';
+        }
+        likeCount.innerText = j.count ?? likeCount.innerText;
+        // refresh recent list
+        await refreshCount();
+      }
+    } catch(err){
+      console.error(err);
+      likeMsg.innerText = 'Network error — try again.';
+    } finally {
+      likeBtn.disabled = false;
+    }
+  });
+
+  // initial load
+  refreshCount();
+</script>
+
     
     <footer class="text-center p-6">
         <p class="text-sm text-gray-600">Made by Akshay Sharma</p>
