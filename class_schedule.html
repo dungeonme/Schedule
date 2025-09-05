@@ -160,20 +160,17 @@
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
             <a href="./index.html" class="text-lg md:text-xl font-bold text-gray-800 hover:text-gray-600">Student Dashboard</a>
             
-            <!-- Desktop Menu -->
             <nav class="hidden md:flex gap-6">
                 <a href="./class_schedule.html" class="text-blue-600 font-semibold">Class Schedule</a>
                 <a href="./mess.html" class="text-gray-600 hover:text-orange-600 font-medium">Mess Schedule</a>
             </nav>
 
-            <!-- Mobile Menu Button -->
             <div class="md:hidden">
                 <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-800 focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                 </button>
             </div>
         </div>
-        <!-- Mobile Menu -->
         <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-gray-200">
             <a href="./index.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Home</a>
             <a href="./class_schedule.html" class="block py-2 px-4 text-sm text-blue-600 bg-blue-50 font-semibold">Class Schedule</a>
@@ -196,11 +193,6 @@
                     <div id="searchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
                 </div>
                 <div id="selectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
-                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Calendar file (.ics)</button>
-                <p id="download-explainer" class="text-xs text-gray-500 mt-2 text-center hidden">
-                    Open the downloaded .ics file with Google Calendar or Outlook to add all your classes directly.
-                    <br>If the schedule is updated later, just download a new file and import it. Your calendar will update without creating duplicates.
-                </p>
             </div>
 
             <div id="schedule-cards-container" class="schedule-cards-container flex flex-col gap-6">
@@ -229,6 +221,14 @@
                 </div>
             </div>
             
+            <div class="card">
+                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Calendar file (.ics)</button>
+                <p id="download-explainer" class="text-xs text-gray-500 mt-2 text-center hidden">
+                    Open the downloaded .ics file with Google Calendar or Outlook to add all your classes directly.
+                    <br>If the schedule is updated later, just download a new file and import it. Your calendar will update without creating duplicates.
+                </p>
+            </div>
+
             <div class="card">
                 <div class="flex border-b border-gray-200 mb-4">
                     <button id="my-calendar-tab-btn" class="tab-btn active" data-tab="my-calendar">My Calendar</button>
@@ -265,8 +265,7 @@
                     <div id="comparisonResults" class="mt-4"></div>
                 </div>
             </div>
-             <!-- Back to Home Button -->
-            <div class="text-center">
+             <div class="text-center">
                 <a href="./index.html" class="inline-block bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">🏠 Back to Home</a>
             </div>
         </main>
@@ -724,4 +723,3 @@
     </script>
 </body>
 </html>
-
