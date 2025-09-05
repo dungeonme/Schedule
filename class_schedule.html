@@ -74,7 +74,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* --- NEW CALENDAR STYLES --- */
+        /* --- CALENDAR STYLES --- */
         .calendar-grid {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -99,7 +99,11 @@
         .day-free { background-color: #C6F6D5; color: #2F855A; }
         .day-bunk { background-color: #FEFCBF; color: #B7791F; cursor: help; }
         .day-busy { background-color: #FED7D7; color: #C53030; }
-        .day-weekend { background-color: #EDF2F7; color: #718096; }
+        .day-outside-term { background-color: #EDF2F7; color: #A0AEC0; }
+        .day-light-load { background-color: #BEE3F8; color: #2C5282; }
+        .day-medium-load { background-color: #63B3ED; color: #1A365D; }
+        .day-heavy-load { background-color: #3182CE; color: #EBF8FF; }
+
         .add-to-calendar-btn {
             background-color: rgba(255, 255, 255, 0.2);
             border-radius: 50%;
@@ -163,6 +167,14 @@
                     <button id="subjectWiseBtn" class="btn secondary flex-grow">Subject-wise</button>
                 </div>
                 <div id="upcomingClassesContainer"><div class="loader"></div></div>
+            </div>
+
+            <!-- My Calendar View -->
+            <div class="card">
+                <h2 class="card-title text-xl mb-4">🗓️ My Term Calendar</h2>
+                <p class="text-sm text-gray-500 mb-4">Generate a color-coded calendar for your subjects during the term (10 Sep - 6 Dec).</p>
+                <button id="showMyCalendarBtn" class="btn w-full">Show My Calendar</button>
+                <div id="myCalendarResults" class="mt-4"></div>
             </div>
 
             <!-- Search by Date -->
@@ -458,15 +470,43 @@
                 return timeA.minutes - timeB.minutes;
             });
         }
-        
-        // --- SCHEDULE COMPARISON & VISUALIZATION ---
-        function renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate) {
-            const resultsContainer = document.getElementById('comparisonResults');
+
+        // --- CALENDAR VISUALIZATION LOGIC ---
+        function generateMyCalendar() {
+             const resultsContainer = document.getElementById('myCalendarResults');
+            resultsContainer.innerHTML = '<div class="loader"></div>';
+
+            if (enrolledClasses.length === 0) {
+                showToast('Please select your subjects first.', 'error');
+                resultsContainer.innerHTML = ''; return;
+            }
+
+            const termStartDate = new Date(2025, 8, 10);
+            const termEndDate = new Date(2025, 11, 6);
+            const myDailySchedule = {};
+
+            allSheetData.forEach(row => {
+                const classDate = parseDate(row[0]);
+                if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+
+                const classNameLower = parseClassInfo(row[2]).class.toLowerCase();
+                if (enrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                    const dateKey = classDate.toISOString().split('T')[0];
+                    myDailySchedule[dateKey] = (myDailySchedule[dateKey] || 0) + 1;
+                }
+            });
+            
+            renderMyCalendar(myDailySchedule, termStartDate, termEndDate);
+        }
+
+        function renderMyCalendar(myDailySchedule, termStartDate, termEndDate) {
+            const resultsContainer = document.getElementById('myCalendarResults');
             let calendarHtml = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs">
-                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Free</div>
-                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 mr-2"></span> Bunkable</div>
-                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy</div>
-                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Weekend/Holiday</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Holiday</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-200 mr-2"></span> 1 Class</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-400 mr-2"></span> 2 Classes</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-600 mr-2"></span> 3+ Classes</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Outside Term</div>
             </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
 
             for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
@@ -475,33 +515,24 @@
                 
                 calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${monthName} 2025</h4>`;
                 calendarHtml += `<div class="calendar-grid">`;
-                'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => {
-                    calendarHtml += `<div class="calendar-day-header text-center">${day}</div>`;
-                });
+                'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day-header text-center">${day}</div>`);
 
-                const firstDayOfMonth = date.getDay();
-                for (let i = 0; i < firstDayOfMonth; i++) {
-                    calendarHtml += `<div></div>`;
-                }
+                for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
 
                 while (date.getMonth() === month) {
                     const dateKey = date.toISOString().split('T')[0];
-                    const status = dailyStatuses[dateKey] || { type: 'outside' };
+                    const classCount = myDailySchedule[dateKey] || 0;
                     let dayClass = 'calendar-day';
-                    let title = '';
-                    const dayOfWeek = date.getDay();
+                    let title = 'No classes';
 
-                    if (dayOfWeek === 0 || dayOfWeek === 6) {
-                        dayClass += ' day-weekend';
-                    } else if (date < termStartDate || date > termEndDate) {
-                         dayClass += ' ';
+                    if (date < termStartDate || date > termEndDate) {
+                        dayClass += ' day-outside-term';
+                        title = 'Outside Term';
                     } else {
-                        switch (status.type) {
-                            case 'free': dayClass += ' day-free'; title = 'Completely Free!'; break;
-                            case 'bunk': dayClass += ' day-bunk'; title = `Bunkable! ${status.who} must miss: ${status.class}`; break;
-                            case 'busy': dayClass += ' day-busy'; title = 'Busy Day'; break;
-                            default: dayClass += ' day-free'; title = 'Completely Free!';
-                        }
+                        if (classCount === 0) { dayClass += ' day-free'; }
+                        else if (classCount === 1) { dayClass += ' day-light-load'; title = '1 class'; }
+                        else if (classCount === 2) { dayClass += ' day-medium-load'; title = '2 classes'; }
+                        else { dayClass += ' day-heavy-load'; title = `${classCount} classes`; }
                     }
                     calendarHtml += `<div class="${dayClass}" title="${title}">${date.getDate()}</div>`;
                     date.setDate(date.getDate() + 1);
@@ -509,39 +540,10 @@
                 calendarHtml += `</div></div>`;
             }
             calendarHtml += `</div>`;
-
-            // --- Bunk Details List Organized by Month ---
-            let bunkListHtml = '';
-            const bunkDays = Object.entries(dailyStatuses)
-                .filter(([_, status]) => status.type === 'bunk')
-                .map(([dateKey, status]) => ({ date: new Date(dateKey + 'T00:00:00'), ...status }))
-                .sort((a, b) => a.date - b.date);
-
-            if (bunkDays.length > 0) {
-                bunkListHtml += `<h3 class="font-semibold text-lg mt-6 mb-2 text-gray-800">🤔 Bunking Opportunities Details:</h3>`;
-                const bunksByMonth = {};
-                bunkDays.forEach(day => {
-                    const monthName = day.date.toLocaleString('default', { month: 'long' });
-                    if (!bunksByMonth[monthName]) {
-                        bunksByMonth[monthName] = [];
-                    }
-                    bunksByMonth[monthName].push(day);
-                });
-
-                const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
-                for (const monthName in bunksByMonth) {
-                    bunkListHtml += `<h4 class="font-semibold text-md mt-4 mb-1 text-gray-700">${monthName}</h4>`;
-                    bunkListHtml += `<ul class="space-y-2 list-disc list-inside">`;
-                    bunksByMonth[monthName].forEach(day => {
-                        bunkListHtml += `<li class="text-sm text-yellow-800"><span class="font-semibold">${formatDate(day.date)}:</span> ${day.who} must miss class: <span class="font-semibold">${day.class}</span></li>`;
-                    });
-                    bunkListHtml += `</ul>`;
-                }
-            }
-
-            resultsContainer.innerHTML = calendarHtml + bunkListHtml;
+            resultsContainer.innerHTML = calendarHtml;
         }
-        
+
+        // --- FRIEND SCHEDULE COMPARISON LOGIC ---
         function compareSchedules() {
             const resultsContainer = document.getElementById('comparisonResults');
             resultsContainer.innerHTML = '<div class="loader"></div>';
@@ -588,6 +590,76 @@
             renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate);
         }
 
+        function renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate) {
+            const resultsContainer = document.getElementById('comparisonResults');
+            let calendarHtml = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs">
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Free</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 mr-2"></span> Bunkable</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy</div>
+                <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Outside Term</div>
+            </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
+
+            for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
+                const date = new Date(termStartDate.getFullYear(), month, 1);
+                const monthName = date.toLocaleString('default', { month: 'long' });
+                
+                calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${monthName} 2025</h4>`;
+                calendarHtml += `<div class="calendar-grid">`;
+                'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day-header text-center">${day}</div>`);
+                for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
+
+                while (date.getMonth() === month) {
+                    const dateKey = date.toISOString().split('T')[0];
+                    const status = dailyStatuses[dateKey] || { type: 'outside' };
+                    let dayClass = 'calendar-day';
+                    let title = '';
+
+                    if (date < termStartDate || date > termEndDate) {
+                         dayClass += ' day-outside-term';
+                         title = 'Outside Term';
+                    } else {
+                        switch (status.type) {
+                            case 'free': dayClass += ' day-free'; title = 'Completely Free!'; break;
+                            case 'bunk': dayClass += ' day-bunk'; title = `Bunkable! ${status.who} must miss: ${status.class}`; break;
+                            case 'busy': dayClass += ' day-busy'; title = 'Busy Day'; break;
+                            default: dayClass += ' day-free'; title = 'Completely Free!';
+                        }
+                    }
+                    calendarHtml += `<div class="${dayClass}" title="${title}">${date.getDate()}</div>`;
+                    date.setDate(date.getDate() + 1);
+                }
+                calendarHtml += `</div></div>`;
+            }
+            calendarHtml += `</div>`;
+
+            let bunkListHtml = '';
+            const bunkDays = Object.entries(dailyStatuses)
+                .filter(([_, status]) => status.type === 'bunk')
+                .map(([dateKey, status]) => ({ date: new Date(dateKey + 'T00:00:00'), ...status }))
+                .sort((a, b) => a.date - b.date);
+
+            if (bunkDays.length > 0) {
+                bunkListHtml += `<h3 class="font-semibold text-lg mt-6 mb-2 text-gray-800">🤔 Bunking Opportunities Details:</h3>`;
+                const bunksByMonth = {};
+                bunkDays.forEach(day => {
+                    const monthName = day.date.toLocaleString('default', { month: 'long' });
+                    if (!bunksByMonth[monthName]) bunksByMonth[monthName] = [];
+                    bunksByMonth[monthName].push(day);
+                });
+                const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
+                for (const monthName in bunksByMonth) {
+                    bunkListHtml += `<h4 class="font-semibold text-md mt-4 mb-1 text-gray-700">${monthName}</h4>`;
+                    bunkListHtml += `<ul class="space-y-2 list-disc list-inside">`;
+                    bunksByMonth[monthName].forEach(day => {
+                        bunkListHtml += `<li class="text-sm text-yellow-800"><span class="font-semibold">${formatDate(day.date)}:</span> ${day.who} must miss class: <span class="font-semibold">${day.class}</span></li>`;
+                    });
+                    bunkListHtml += `</ul>`;
+                }
+            }
+            resultsContainer.innerHTML = calendarHtml + bunkListHtml;
+        }
+        
+        // --- CORE DATA & INITIALIZATION ---
         async function refreshData() {
             const refreshBtn = document.getElementById('refreshBtn');
             refreshBtn.classList.add('animate-spin');
@@ -638,7 +710,6 @@
             renderClasses(filterAndSortClasses(allSheetData, selectedDate), 'selectedDateClasses');
         }
 
-        // --- EVENT LISTENERS & INITIALIZATION ---
         function setupSubjectSearch(inputId, resultsId, tagsId, targetArray) {
             const searchInput = document.getElementById(inputId);
             const resultsContainer = document.getElementById(resultsId);
@@ -712,6 +783,7 @@
             document.getElementById('dayWiseBtn').addEventListener('click', () => renderUpcomingView('dayWise'));
             document.getElementById('subjectWiseBtn').addEventListener('click', () => renderUpcomingView('subjectWise'));
             document.getElementById('showScheduleBtn').addEventListener('click', fetchClassesForDate);
+            document.getElementById('showMyCalendarBtn').addEventListener('click', generateMyCalendar);
             document.getElementById('compareSchedulesBtn').addEventListener('click', compareSchedules);
 
             refreshData().then(() => {
@@ -724,3 +796,4 @@
     </script>
 </body>
 </html>
+
