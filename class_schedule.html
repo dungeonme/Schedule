@@ -187,7 +187,7 @@
         <main id="scheduleContent" class="flex flex-col gap-6">
             <div class="card">
                 <h2 class="card-title text-xl mb-4">✅ My Subjects</h2>
-                <p id="welcome-prompt" class="text-gray-600 mb-4">Enter your subjects</p>
+                <p id="welcome-prompt" class="text-gray-600 mb-4">Start by searching for your subjects to build your schedule.</p>
                 <div class="relative mb-4">
                     <input type="text" id="subjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add a subject...">
                     <div id="searchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
@@ -221,10 +221,10 @@
                 </div>
             </div>
             
-            <div class="card">
-                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Your Calendar file (.ics)</button>
+             <div class="card">
+                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Calendar file (.ics)</button>
                 <p id="download-explainer" class="text-xs text-gray-500 mt-2 text-center hidden">
-                    This calendar file has only your subjects. Open it with Google Calendar or Outlook to add all your classes directly.
+                    Open the downloaded .ics file with Google Calendar or Outlook to add all your classes directly.
                     <br>If the schedule is updated later, just download a new file and import it. Your calendar will update without creating duplicates.
                 </p>
             </div>
@@ -342,7 +342,93 @@
                 });
                 return `${baseURL}&${params.toString()}`;
             }
-            function generateMonthlyICS() { /* ... function restored ... */ }
+            
+            function generateMonthlyICS() {
+                if (enrolledClasses.length === 0) {
+                    showToast('Please select your subjects first to download a calendar.', 'error');
+                    return;
+                }
+
+                const toUTCFormat = (date) => {
+                    if (!date || isNaN(date.getTime())) return '';
+                    // Create a new date object for UTC conversion to avoid modifying the original
+                    const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
+                    return utcDate.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
+                };
+
+                let icsString = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//StudentDashboard//AkshaySharma//EN',
+                    'CALSCALE:GREGORIAN',
+                ].join('\r\n') + '\r\n';
+
+                const termStartDate = new Date(2025, 8, 10); // Sep 10
+                const termEndDate = new Date(2025, 11, 6); // Dec 6
+
+                let eventCount = 0;
+                allSheetData.forEach((row, index) => {
+                    if (index === 0) return; // Skip header row
+
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[1] || !row[2]) return;
+                    
+                    if (classDate < termStartDate || classDate > termEndDate) return;
+
+                    const className = parseClassInfo(row[2]).class;
+                    const classNameLower = className.toLowerCase();
+
+                    if (!enrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                        return;
+                    }
+
+                    const timeParts = row[1].split('-').map(t => t.trim());
+                    if (timeParts.length < 2) return;
+
+                    const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
+                    const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
+
+                    if (isNaN(startHours) || isNaN(endHours)) return;
+
+                    const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHours, startMinutes);
+                    const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHours, endMinutes);
+
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
+                    
+                    eventCount++;
+                    const uid = `${toUTCFormat(startDate)}-${className.replace(/\s+/g, '')}@studentdashboard.com`;
+
+                    const event = [
+                        'BEGIN:VEVENT',
+                        `DTSTAMP:${toUTCFormat(new Date())}`,
+                        `UID:${uid}`,
+                        `DTSTART:${toUTCFormat(startDate)}`,
+                        `DTEND:${toUTCFormat(endDate)}`,
+                        `SUMMARY:${className}`,
+                        'END:VEVENT'
+                    ].join('\r\n');
+
+                    icsString += event + '\r\n';
+                });
+
+                icsString += 'END:VCALENDAR';
+
+                if (eventCount === 0) {
+                    showToast('No classes found for your selected subjects in the current term.', 'error');
+                    return;
+                }
+
+                const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'class_schedule.ics';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                showToast(`Successfully generated calendar with ${eventCount} classes!`, 'success');
+            }
+
             function saveUserPreferences(classesToSave) { try { localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave)); } catch (e) { console.error("LS Save Error:", e); } }
             function fetchUserPreferences() { try { const d = localStorage.getItem('enrolledClasses'); return d ? JSON.parse(d) : null; } catch (e) { console.error("LS Fetch Error:", e); return null; } }
 
@@ -723,4 +809,3 @@
     </script>
 </body>
 </html>
-
