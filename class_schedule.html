@@ -187,7 +187,7 @@
         <main id="scheduleContent" class="flex flex-col gap-6">
             <div class="card">
                 <h2 class="card-title text-xl mb-4">✅ My Subjects</h2>
-                <p id="welcome-prompt" class="text-gray-600 mb-4">Start by searching for your subjects to build your schedule.</p>
+                <p id="welcome-prompt" class="text-gray-600 mb-4">Enter your subjects</p>
                 <div class="relative mb-4">
                     <input type="text" id="subjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add a subject...">
                     <div id="searchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
@@ -222,9 +222,9 @@
             </div>
             
             <div class="card">
-                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Calendar file (.ics)</button>
+                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Your Calendar file (.ics)</button>
                 <p id="download-explainer" class="text-xs text-gray-500 mt-2 text-center hidden">
-                    Open the downloaded .ics file with Google Calendar or Outlook to add all your classes directly.
+                    This calendar file has only your subjects. Open it with Google Calendar or Outlook to add all your classes directly.
                     <br>If the schedule is updated later, just download a new file and import it. Your calendar will update without creating duplicates.
                 </p>
             </div>
@@ -723,3 +723,4 @@
     </script>
 </body>
 </html>
+
