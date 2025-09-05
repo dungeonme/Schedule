@@ -42,32 +42,50 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        /* Custom radio buttons */
-        .form-radio {
-            appearance: none;
-            background-color: #fff;
-            margin: 0;
-            font: inherit;
-            color: currentColor;
-            width: 1.15em;
-            height: 1.15em;
-            border: 0.15em solid #E57C23;
-            border-radius: 50%;
-            transform: translateY(-0.075em);
-            display: grid;
-            place-content: center;
+        /* --- NEW VISUAL SELECTOR STYLES --- */
+        .day-pill {
+            padding: 0.5rem 1.25rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            background-color: #F7FAFC;
+            color: #4A5568;
+            border: 1px solid #E2E8F0;
         }
-        .form-radio::before {
-            content: "";
-            width: 0.65em;
-            height: 0.65em;
-            border-radius: 50%;
-            transform: scale(0);
-            transition: 120ms transform ease-in-out;
-            box-shadow: inset 1em 1em #E57C23;
+        .day-pill:hover {
+            background-color: #EDF2F7;
         }
-        .form-radio:checked::before {
-            transform: scale(1);
+        .day-pill.active {
+            background-color: #E57C23;
+            color: white;
+            border-color: #E57C23;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .meal-card {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            border: 2px solid #E2E8F0;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .meal-card:hover {
+            border-color: #DD6B20;
+            transform: translateY(-2px);
+        }
+        .meal-card.active {
+            border-color: #E57C23;
+            background-color: #FFF8F0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .meal-card svg {
+            margin: 0 auto 0.5rem;
+            color: #AD8B73;
+        }
+        .meal-card.active svg {
+            color: #E57C23;
         }
     </style>
 </head>
@@ -107,21 +125,19 @@
 
             <!-- Search Menu Section -->
             <section class="card">
-                <h2 class="card-title mb-4 text-xl">Search Full Menu 🗓️</h2>
-                <div class="flex flex-col md:flex-row md:items-end gap-4">
-                    <div class="flex-grow">
-                        <label for="day-select" class="block text-sm font-medium text-gray-700 mb-1">Day of the Week</label>
-                        <select id="day-select" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-orange-500 focus:border-orange-500 bg-white">
-                            <!-- Options will be populated by JS -->
-                        </select>
+                <h2 class="card-title mb-2 text-xl">Search Full Menu 🗓️</h2>
+                <p id="menu-month-display" class="text-sm text-gray-500 mb-6"></p>
+                <div class="flex flex-col gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Day of the Week</label>
+                        <div id="day-select-pills" class="flex flex-wrap gap-2">
+                            <!-- Day pills will be populated by JS -->
+                        </div>
                     </div>
-                    <div class="flex-grow md:pl-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Meal Time</label>
-                        <div id="meal-select" class="flex flex-wrap gap-x-6 gap-y-2 pt-2">
-                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Breakfast" class="form-radio"> <span class="ml-2">Breakfast</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Lunch" class="form-radio"> <span class="ml-2">Lunch</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Snacks" class="form-radio"> <span class="ml-2">Snacks</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="meal" value="Dinner" class="form-radio"> <span class="ml-2">Dinner</span></label>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Meal Time</label>
+                        <div id="meal-select-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                           <!-- Meal cards will be populated by JS -->
                         </div>
                     </div>
                 </div>
@@ -136,59 +152,58 @@
             <a href="./index.html" class="inline-block bg-orange-100 text-orange-800 py-2 px-6 rounded-lg hover:bg-orange-200 transition-colors">🏠 Back to Home</a>
         </div>
 
-        <footer class="text-center mt-4">
-            <p id="month-display" class="text-xs text-gray-400"></p>
+        <footer class="text-center p-6 mt-4">
+            <p class="text-sm text-gray-600">Made by Akshay Sharma</p>
+            <div class="flex justify-center items-center gap-4 mt-2">
+                <a href="https://www.linkedin.com/in/akshay-sharma-2434141b6/" target="_blank" class="text-gray-500 hover:text-blue-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                </a>
+                <a href="https://www.instagram.com/akshay_sharmaa__?igsh=a2U2b3hyZmowZmkx" target="_blank" class="text-gray-500 hover:text-pink-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.012 3.584-.07 4.85c-.148 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.012-3.584.07-4.85c.148-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.644-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44 1.441-.645 1.441-1.44-.645-1.44-1.441-1.44z"/></svg>
+                </a>
+                <a href="https://twitter.com/AkshaySharma__" target="_blank" class="text-gray-500 hover:text-black transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+            </div>
         </footer>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- CONFIGURATION ---
-            const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/Menu!A1:F1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
-            const MEAL_TIMES = {
-                Breakfast: { start: 8.5, end: 10.5 }, // 8:30 AM - 10:30 AM
-                Lunch: { start: 13, end: 15 },       // 1:00 PM - 3:00 PM
-                Snacks: { start: 17.5, end: 19.5 },    // 5:30 PM - 7:30 PM
-                Dinner: { start: 20.5, end: 23 },     // 8:30 PM - 11:00 PM
-                NightCanteen: { start: 0, end: 2 }   // 12:00 AM - 2:00 AM
-            };
+            const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/Menu!A1:G1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+            const MEAL_TIMES = { Breakfast: { start: 8.5, end: 10.5 }, Lunch: { start: 13, end: 15 }, Snacks: { start: 17.5, end: 19.5 }, Dinner: { start: 20.5, end: 23 }, NightCanteen: { start: 0, end: 2 } };
             const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             
-            // --- DOM ELEMENTS ---
             const loaderContainer = document.getElementById('loader-container');
             const appContainer = document.getElementById('app-container');
             const currentDateEl = document.getElementById('current-date');
             const currentTimeEl = document.getElementById('current-time');
             const currentMealContentEl = document.getElementById('current-meal-content');
             const nextMealContentEl = document.getElementById('next-meal-content');
-            const daySelectEl = document.getElementById('day-select');
-            const mealSelectContainer = document.getElementById('meal-select');
+            const daySelectPillsEl = document.getElementById('day-select-pills');
+            const mealSelectCardsEl = document.getElementById('meal-select-cards');
             const searchResultEl = document.getElementById('search-result');
-            const monthDisplayEl = document.getElementById('month-display');
+            const menuMonthDisplayEl = document.getElementById('menu-month-display');
 
             let menuData = {};
-
-            // --- FUNCTIONS ---
+            let selectedDay = null;
+            let selectedMeal = null;
 
             async function fetchAndProcessMenu() {
                 try {
                     const response = await fetch(API_URL);
                     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                    
                     const data = await response.json();
                     const rows = data.values;
-
                     if (!rows || rows.length < 2) throw new Error("No data found in the sheet.");
                     
-                    const monthName = rows[1] && rows[1][5] ? rows[1][5] : '';
-                    if (monthName && monthDisplayEl) {
-                        monthDisplayEl.textContent = `Showing the ${monthName} menu`;
-                    }
+                    const monthName = rows[0]?.[6] || '';
+                    if (monthName) menuMonthDisplayEl.textContent = `Showing the ${monthName} menu`;
                     
                     for (let i = 1; i < rows.length; i++) {
                         const row = rows[i];
                         const day = row[0]?.trim();
-                        if (day && !menuData[day]) {
+                        if (day) {
                             menuData[day] = {
                                 Breakfast: row[1]?.trim() || 'Not specified',
                                 Lunch: row[2]?.trim() || 'Not specified',
@@ -198,9 +213,17 @@
                         }
                     }
                     
-                    populateDaySelector();
-                    updateLiveStatus();
+                    populateVisualSelectors();
                     setupSearchListeners();
+
+                    const now = new Date();
+                    const currentHour = now.getHours() + now.getMinutes() / 60;
+                    let currentMealForSearch = getNextMeal(DAYS[now.getDay()], currentHour).meal;
+                    selectedMeal = currentMealForSearch;
+
+                    updateActiveMealCard();
+                    updateLiveStatus();
+                    performSearch(); 
 
                     loaderContainer.style.display = 'none';
                     appContainer.classList.remove('hidden');
@@ -211,56 +234,85 @@
                 }
             }
 
-            function getEmojiForMeal(mealText) {
-                if (!mealText) return '🍴 ';
-                const lower = mealText.toLowerCase();
-                if (lower.includes('chicken') || lower.includes('mutton')) return '🍗 ';
-                if (lower.includes('egg')) return '🥚 ';
-                if (lower.includes('paneer') || lower.includes('cheese')) return '🧀 ';
-                if (lower.includes('dosa') || lower.includes('idli') || lower.includes('uttapam')) return '🥞 ';
-                if (lower.includes('paratha') || lower.includes('puri') || lower.includes('poori')) return '🍞 ';
-                if (lower.includes('roti') || lower.includes('chapati')) return '🫓 ';
-                if (lower.includes('rice') || lower.includes('pulao') || lower.includes('biryani')) return '🍚 ';
-                if (lower.includes('dal') || lower.includes('sambar')) return '🥣 ';
-                if (lower.includes('chole') || lower.includes('rajma')) return '🍲 ';
-                if (lower.includes('veg') || lower.includes('sabzi') || lower.includes('gobhi') || lower.includes('aloo') || lower.includes('bhindi')) return '🥦 ';
-                if (lower.includes('salad')) return '🥗 ';
-                if (lower.includes('juice') || lower.includes('lassi')) return '🧃 ';
-                if (lower.includes('milk') || lower.includes('tea') || lower.includes('coffee')) return '☕ ';
-                if (lower.includes('sandwich')) return '🥪 ';
-                if (lower.includes('noodles') || lower.includes('maggi')) return '🍜 ';
-                if (lower.includes('pasta')) return '🍝 ';
-                if (lower.includes('pizza')) return '🍕 ';
-                if (lower.includes('burger')) return '🍔 ';
-                if (lower.includes('samosa') || lower.includes('kachori')) return '🥟 ';
-                if (lower.includes('kheer') || lower.includes('halwa') || lower.includes('gulab jamun')) return '🍮 ';
-                if (lower.includes('fruit')) return '🍉 ';
-                if (lower.includes('curd') || lower.includes('dahi')) return '🥣 ';
-                return '🍴 ';
+            function formatMenuHTML(menuString) {
+                if (!menuString || menuString.toLowerCase().includes('not specified') || menuString.toLowerCase().includes('not available')) {
+                    return `<p class="meal-item text-gray-500">${menuString}</p>`;
+                }
+
+                const NON_VEG_KEYWORDS = ['chicken', 'egg', 'fish', 'omelette', 'mutton'];
+                const items = menuString.split(',').map(item => item.trim()).filter(Boolean);
+                const vegItems = [];
+                const nonVegItems = [];
+
+                items.forEach(item => {
+                    const isNonVeg = NON_VEG_KEYWORDS.some(keyword => item.toLowerCase().includes(keyword));
+                    if (isNonVeg) {
+                        nonVegItems.push(item);
+                    } else {
+                        vegItems.push(item);
+                    }
+                });
+
+                let html = '';
+
+                if (vegItems.length > 0 && nonVegItems.length === 0) {
+                    return `<p class="meal-item">${vegItems.join(', ')}</p>`;
+                }
+
+                if (vegItems.length > 0) {
+                    html += `<div class="mb-2">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-green-600">Veg</h4>
+                                <p class="meal-item">${vegItems.join(', ')}</p>
+                             </div>`;
+                }
+
+                if (nonVegItems.length > 0) {
+                    html += `<div>
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-red-600">Non-Veg</h4>
+                                <p class="meal-item">${nonVegItems.join(', ')}</p>
+                             </div>`;
+                }
+                
+                return html;
             }
 
-            function populateDaySelector() {
+            function populateVisualSelectors() {
                 const availableDays = Object.keys(menuData);
-                daySelectEl.innerHTML = '<option value="" disabled>Select a day</option>';
+                daySelectPillsEl.innerHTML = '';
                 availableDays.forEach(day => {
-                    const option = document.createElement('option');
-                    option.value = day;
-                    option.textContent = day;
-                    daySelectEl.appendChild(option);
+                    const button = document.createElement('button');
+                    button.className = 'day-pill';
+                    button.textContent = day.substring(0, 3);
+                    button.dataset.day = day;
+                    daySelectPillsEl.appendChild(button);
                 });
                 const today = DAYS[new Date().getDay()];
-                if(availableDays.includes(today)){
-                    daySelectEl.value = today;
-                }
+                selectedDay = availableDays.includes(today) ? today : (availableDays.length > 0 ? availableDays[0] : null);
+                updateActiveDayPill();
+
+                const meals = [{ name: "Breakfast", icon: '☀️' }, { name: "Lunch", icon: '🥪' }, { name: "Snacks", icon: '🍟' }, { name: "Dinner", icon: '🌙' }];
+                mealSelectCardsEl.innerHTML = '';
+                meals.forEach(meal => {
+                    const card = document.createElement('div');
+                    card.className = 'meal-card';
+                    card.dataset.meal = meal.name;
+                    card.innerHTML = `<span class="text-3xl">${meal.icon}</span><p class="font-semibold text-gray-700">${meal.name}</p>`;
+                    mealSelectCardsEl.appendChild(card);
+                });
+            }
+            
+            function updateActiveDayPill() {
+                daySelectPillsEl.querySelectorAll('.day-pill').forEach(pill => pill.classList.toggle('active', pill.dataset.day === selectedDay));
+            }
+            function updateActiveMealCard() {
+                 mealSelectCardsEl.querySelectorAll('.meal-card').forEach(card => card.classList.toggle('active', card.dataset.meal === selectedMeal));
             }
 
             function updateLiveStatus() {
                 const now = new Date();
                 const currentDayName = DAYS[now.getDay()];
                 const currentHour = now.getHours() + now.getMinutes() / 60;
-
-                const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                currentDateEl.textContent = now.toLocaleDateString('en-IN', dateOptions);
+                currentDateEl.textContent = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                 currentTimeEl.textContent = `Current Time: ${now.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute:'2-digit' })}`;
 
                 let currentMeal = null;
@@ -276,11 +328,7 @@
                     currentMealContentEl.innerHTML = `<p class="meal-item text-purple-600">🦉 Night Canteen is Open</p>`;
                 } else if (currentMeal) {
                     const mealName = menuData[currentDayName]?.[currentMeal] || 'Menu not available';
-                    const emoji = getEmojiForMeal(mealName);
-                    currentMealContentEl.innerHTML = `
-                        <p class="text-sm text-gray-500">${currentMeal} is being served</p>
-                        <p class="meal-item">${emoji}${mealName}</p>
-                    `;
+                    currentMealContentEl.innerHTML = `<p class="text-sm text-gray-500">${currentMeal} is being served</p>${formatMenuHTML(mealName)}`;
                 } else {
                     currentMealContentEl.innerHTML = `<p class="meal-item text-red-600">💤 Mess is Closed</p>`;
                 }
@@ -289,53 +337,50 @@
                 if (nextMealInfo) {
                     const { day, meal, time } = nextMealInfo;
                     const mealName = menuData[day]?.[meal] || 'Menu not available';
-                    const emoji = getEmojiForMeal(mealName);
-                    nextMealContentEl.innerHTML = `
-                        <p class="text-sm text-gray-500">${day} ${meal} at ${time}</p>
-                        <p class="meal-item">${emoji}${mealName}</p>
-                    `;
+                    nextMealContentEl.innerHTML = `<p class="text-sm text-gray-500">${day} ${meal} at ${time}</p>${formatMenuHTML(mealName)}`;
                 } else {
                     nextMealContentEl.innerHTML = `<p class="meal-item">Could not determine next meal.</p>`;
                 }
             }
-
             function getNextMeal(currentDayName, currentHour) {
                 const mealOrder = ["Breakfast", "Lunch", "Snacks", "Dinner"];
-                let currentDayIndex = DAYS.indexOf(currentDayName);
-
                 for (const meal of mealOrder) {
                     if (currentHour < MEAL_TIMES[meal].start) {
                         return { day: currentDayName, meal, time: formatTime(MEAL_TIMES[meal].start) };
                     }
                 }
-
-                const nextDayIndex = (currentDayIndex + 1) % 7;
-                const nextDayName = DAYS[nextDayIndex];
+                const nextDayName = DAYS[(DAYS.indexOf(currentDayName) + 1) % 7];
                 return { day: nextDayName, meal: "Breakfast", time: formatTime(MEAL_TIMES.Breakfast.start) };
             }
 
             function setupSearchListeners() {
-                const searchInputs = [daySelectEl, ...mealSelectContainer.querySelectorAll('input[name="meal"]')];
-                searchInputs.forEach(input => {
-                    input.addEventListener('change', performSearch);
+                daySelectPillsEl.addEventListener('click', (e) => {
+                    const pill = e.target.closest('.day-pill');
+                    if (pill && pill.dataset.day) {
+                        selectedDay = pill.dataset.day;
+                        updateActiveDayPill();
+                        performSearch();
+                    }
+                });
+                mealSelectCardsEl.addEventListener('click', (e) => {
+                    const card = e.target.closest('.meal-card');
+                    if (card && card.dataset.meal) {
+                        selectedMeal = card.dataset.meal;
+                        updateActiveMealCard();
+                        performSearch();
+                    }
                 });
             }
 
             function performSearch() {
-                const selectedDay = daySelectEl.value;
-                const selectedMealRadio = mealSelectContainer.querySelector('input[name="meal"]:checked');
-                
-                if (!selectedDay || !selectedMealRadio) {
-                    searchResultEl.innerHTML = '<p class="text-gray-500">Please select both a day and a meal.</p>';
+                if (!selectedDay || !selectedMeal) {
+                    searchResultEl.innerHTML = '<p class="text-gray-500">Select a day and meal to see the menu.</p>';
                     return;
                 }
-                const selectedMeal = selectedMealRadio.value;
-                
                 const result = menuData[selectedDay]?.[selectedMeal] || 'Menu not available for this selection.';
-                const emoji = getEmojiForMeal(result);
-                searchResultEl.innerHTML = `<p class="meal-item text-orange-800 font-semibold">${emoji}${result}</p>`;
+                searchResultEl.innerHTML = formatMenuHTML(result);
             }
-
+            
             function formatTime(decimalHour) {
                 let hours = Math.floor(decimalHour);
                 let minutes = Math.round((decimalHour - hours) * 60);
@@ -352,3 +397,4 @@
     </script>
 </body>
 </html>
+
