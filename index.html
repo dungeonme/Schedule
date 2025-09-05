@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Projects</title>
+    <title>Student Dashboard</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -27,21 +27,21 @@
         }
         .app-card {
             background-color: white;
-            border-radius: 1.5rem; /* Slightly larger radius */
+            border-radius: 1.5rem;
             border: 1px solid #FBEAEB;
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
-            padding: 2.5rem; /* More padding */
+            padding: 2.5rem;
             transition: all 0.3s ease-in-out;
             text-decoration: none;
             color: inherit;
             display: flex;
             flex-direction: column;
-            justify-content: center; /* Center content vertically */
-            align-items: center; /* Center content horizontally */
+            justify-content: center;
+            align-items: center;
             text-align: center;
         }
         .app-card:hover {
-            transform: translateY(-8px); /* More pronounced hover effect */
+            transform: translateY(-8px);
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
         }
         .app-title {
@@ -53,27 +53,39 @@
         }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-gray-50">
 
-    <main class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
-        
-        <!-- Link to Mess Schedule -->
-        <a href="./mess.html" class="app-card">
-            <div class="text-7xl mb-5">🍛</div>
-            <h2 class="app-title text-3xl mb-2">Mess Schedule</h2>
-            <p class="app-description">Check the weekly mess menu, see what's currently being served, and find out what's next.</p>
-        </a>
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-gray-800">Student Dashboard</h1>
+            <nav class="flex gap-4">
+                <a href="./class_schedule.html" class="text-gray-600 hover:text-blue-600 font-medium">Class Schedule</a>
+                <a href="./mess.html" class="text-gray-600 hover:text-orange-600 font-medium">Mess Schedule</a>
+            </nav>
+        </div>
+    </header>
 
-        <!-- Link to Class Schedule -->
-        <a href="./class_schedule.html" class="app-card">
-            <div class="text-7xl mb-5">🗓️</div>
-            <h2 class="app-title text-3xl mb-2">Class Schedule</h2>
-            <p class="app-description">View your weekly class timetable, check room numbers, and never miss a lecture.</p>
-        </a>
+    <div class="flex items-center justify-center flex-grow p-4" style="min-height: calc(100vh - 120px);">
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+            
+            <!-- Link to Mess Schedule -->
+            <a href="./mess.html" class="app-card">
+                <div class="text-7xl mb-5">🍛</div>
+                <h2 class="app-title text-3xl mb-2">Mess Schedule</h2>
+                <p class="app-description">Check the weekly mess menu, see what's currently being served, and find out what's next.</p>
+            </a>
 
-    </main>
+            <!-- Link to Class Schedule -->
+            <a href="./class_schedule.html" class="app-card">
+                <div class="text-7xl mb-5">🗓️</div>
+                <h2 class="app-title text-3xl mb-2">Class Schedule</h2>
+                <p class="app-description">View your weekly class timetable, check room numbers, and never miss a lecture.</p>
+            </a>
+
+        </main>
+    </div>
     
-    <footer class="text-center p-6 mt-8">
+    <footer class="text-center p-6">
         <p class="text-sm text-gray-600">Made by Akshay Sharma</p>
         <div class="flex justify-center items-center gap-4 mt-2">
             <a href="https://www.linkedin.com/in/akshay-sharma-2434141b6/" target="_blank" class="text-gray-500 hover:text-blue-700 transition-colors">
@@ -90,4 +102,3 @@
 
 </body>
 </html>
-
