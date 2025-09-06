@@ -826,6 +826,290 @@
             
             initialize();
         });
+        // ========== CONFIG ========== //
+const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // <-- put your Client ID here
+const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const APP_EXT_PROP_KEY = 'studentdashboard_id'; // key used in extendedProperties.private
+const APP_OWNER_FLAG = 'studentdashboard_owner'; // flag to mark events created by this app
+
+// ========== TOKEN CLIENT (Google Identity Services) ========== //
+let tokenResponse = null;
+const tokenClient = google.accounts.oauth2.initTokenClient({
+  client_id: CLIENT_ID,
+  scope: SCOPE,
+  callback: (resp) => {
+    tokenResponse = resp; // contains access_token and expires_in
+    console.log('Got token', resp);
+    // after obtaining token, run sync
+    if (pendingSyncFunction) pendingSyncFunction();
+  }
+});
+
+// helper to request token (user sees consent prompt on first run)
+function requestGoogleToken() {
+  tokenClient.requestAccessToken({ prompt: 'consent' }); // 'consent' forces consent on first run
+}
+
+// ========== HELPERS: date/time parse & RFC3339 builder (Asia/Kolkata) ========== //
+function pad2(n){ return (n < 10 ? '0' + n : '' + n); }
+
+// parse date in your sheet (DD/MM/YYYY) -> Date object in local (IST) timezone
+function parseDateFromSheet(cell) {
+  if (!cell) return null;
+  // expecting "DD/MM/YYYY" or "D/M/YY"
+  const s = String(cell).trim();
+  if (s.includes('/')) {
+    const parts = s.split('/');
+    if (parts.length === 3) {
+      let d = parseInt(parts[0],10), m = parseInt(parts[1],10), y = parseInt(parts[2],10);
+      if (y < 100) y += 2000;
+      return new Date(y, m-1, d);
+    }
+  }
+  // fallback: try Date parse
+  const dd = new Date(s);
+  return isNaN(dd.getTime()) ? null : dd;
+}
+
+// flexible time parser: supports "15:00", "3:00 pm", "3pm", "15.00"
+function parseTimeString(tstr) {
+  if (!tstr) return null;
+  const s = tstr.toString().trim().toLowerCase();
+  // normalize separators
+  const norm = s.replace(/\./g, ':').replace(/\s+/g, ' ').replace(/[–—]/g, '-');
+  // look for hh:mm am/pm
+  let m = norm.match(/(\d{1,2})(?::|:)?(\d{2})?\s*(am|pm)?/i);
+  if (!m) return null;
+  let hh = parseInt(m[1],10);
+  let mm = m[2] ? parseInt(m[2],10) : 0;
+  const mod = (m[3] || '').toLowerCase();
+  if (mod === 'pm' && hh < 12) hh += 12;
+  if (mod === 'am' && hh === 12) hh = 0;
+  return {hours: hh, minutes: mm};
+}
+
+// create RFC3339 string with explicit +05:30 offset (Asia/Kolkata)
+function toRFC3339_Kolkata(dateObj) {
+  // dateObj must be a JS Date representing the local IST datetime
+  const yyyy = dateObj.getFullYear();
+  const mm = pad2(dateObj.getMonth()+1);
+  const dd = pad2(dateObj.getDate());
+  const hh = pad2(dateObj.getHours());
+  const min = pad2(dateObj.getMinutes());
+  // fixed offset for IST is +05:30
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:00+05:30`;
+}
+
+// ========== MAP SHEET ROW -> event object ========= //
+// Customize column indices if your sheet columns differ. This matches your earlier layout:
+// date -> row[0], time -> row[1], class candidate columns -> row[2], row[9], row[10], row[11], row[3]
+function rowToEvent(row, rowIndex) {
+  // row is an array - adapt to your sheet format
+  const rawDate = row[0];
+  const rawTime = row[1];
+  // pick class name from likely columns
+  const rawClassCandidates = [row[2], row[9], row[10], row[11], row[3]];
+  let className = null;
+  for (const c of rawClassCandidates) { if (c && String(c).trim()) { className = String(c).trim(); break; } }
+  if (!rawDate || !rawTime || !className) return null;
+
+  const dateObj = parseDateFromSheet(rawDate);
+  if (!dateObj) return null;
+
+  // time may have two parts like "15:00 - 16:30" or "3pm-4:30pm"
+  let timeParts = String(rawTime).split(/[-–—\u2013\u2014]|to/i).map(s => s.trim()).filter(Boolean);
+  if (timeParts.length < 2) return null;
+  const startT = parseTimeString(timeParts[0]), endT = parseTimeString(timeParts[1]);
+  if (!startT || !endT) return null;
+
+  // construct local Date objects in IST using the parsed date + times:
+  const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startT.hours, startT.minutes);
+  const endDate   = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endT.hours,   endT.minutes);
+
+  // find stable externalId: prefer a stable column if present (rowNN or explicit id)
+  // try to find a cell like 'row83' in the row
+  let stable = null;
+  for (const cell of row) {
+    if (typeof cell === 'string' && /^row\d+/i.test(cell.trim())) { stable = cell.trim(); break; }
+  }
+  // fallback to generated deterministic id: use rowIndex so it's stable per sheet row
+  const externalId = stable ? stable : `r${rowIndex}-${className.replace(/\s+/g,'_').replace(/[^\w\-]/g,'').slice(0,40)}`;
+
+  return {
+    externalId,                   // used for dedupe and lookup
+    summary: className,
+    description: `Professor: ${row[?] || 'N/A'}`, // adapt: use your professor column index if present
+    location: (row[4] || row[5] || '').toString().trim(),
+    startRfc3339: toRFC3339_Kolkata(startDate),
+    endRfc3339: toRFC3339_Kolkata(endDate)
+  };
+}
+// NOTE: adjust description/professor extraction: replace row[?] with the actual professor column index you use.
+
+// ========== GOOGLE CALENDAR REST WRAPPERS ========== //
+async function gcalFetch(pathWithQuery='https://www.googleapis.com/calendar/v3/calendars/primary/events', method='GET', body=null) {
+  if (!tokenResponse || !tokenResponse.access_token) throw new Error('No access token. Request token first.');
+  const headers = { Authorization: 'Bearer ' + tokenResponse.access_token };
+  const opts = { method, headers };
+  if (body) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch(pathWithQuery, opts);
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(`GCal API Error ${res.status}: ${t}`);
+  }
+  // DELETE returns empty, so guard
+  if (res.status === 204) return {};
+  return await res.json();
+}
+
+// list events created by this app in a time range
+async function listMyEvents(timeMinIso, timeMaxIso, pageToken=null) {
+  const params = new URLSearchParams({
+    singleEvents: 'true',
+    maxResults: '2500',
+    orderBy: 'startTime'
+  });
+  if (timeMinIso) params.set('timeMin', timeMinIso);
+  if (timeMaxIso) params.set('timeMax', timeMaxIso);
+  // query for our private extended property owner flag
+  params.set('privateExtendedProperty', encodeURIComponent(`${APP_OWNER_FLAG}=true`));
+  if (pageToken) params.set('pageToken', pageToken);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`;
+  return await gcalFetch(url, 'GET');
+}
+
+// find event by externalId using privateExtendedProperty filter
+async function findEventByExternalId(externalId) {
+  // encode privateExtendedProperty param as documented
+  const paramVal = encodeURIComponent(`${APP_EXT_PROP_KEY}=${externalId}`);
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?privateExtendedProperty=${paramVal}&singleEvents=true&maxResults=1`;
+  const data = await gcalFetch(url, 'GET');
+  return (data.items && data.items.length) ? data.items[0] : null;
+}
+
+// create event
+async function createEventOnGoogle(event) {
+  const body = {
+    summary: event.summary,
+    description: event.description || '',
+    location: event.location || '',
+    start: { dateTime: event.startRfc3339 },
+    end:   { dateTime: event.endRfc3339 },
+    extendedProperties: { private: { [APP_EXT_PROP_KEY]: event.externalId, [APP_OWNER_FLAG]: 'true' } }
+  };
+  return await gcalFetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', 'POST', body);
+}
+
+// update event (patch)
+async function updateEventOnGoogle(eventId, event) {
+  const body = {
+    summary: event.summary,
+    description: event.description || '',
+    location: event.location || '',
+    start: { dateTime: event.startRfc3339 },
+    end:   { dateTime: event.endRfc3339 },
+    extendedProperties: { private: { [APP_EXT_PROP_KEY]: event.externalId, [APP_OWNER_FLAG]: 'true' } }
+  };
+  return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, 'PATCH', body);
+}
+
+// delete event
+async function deleteEventOnGoogle(eventId) {
+  return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, 'DELETE');
+}
+
+// ========== FULL SYNC: create/update/delete ==========
+let pendingSyncFunction = null;
+async function syncAllEventsToGoogle() {
+  try {
+    // if no token, request it and defer execution until callback
+    if (!tokenResponse || !tokenResponse.access_token) {
+      pendingSyncFunction = syncAllEventsToGoogle;
+      requestGoogleToken();
+      return;
+    }
+
+    // Build localEvents array from sheet (only enrolled classes)
+    const localEvents = []; // array of { externalId, summary, startRfc3339, endRfc3339, location, description }
+    for (let i = 1; i < allSheetData.length; i++) {
+      const row = allSheetData[i];
+      // optionally filter by enrolledClasses (same logic as your generator)
+      // convert row -> event
+      const ev = rowToEvent(row, i);
+      if (!ev) continue;
+      // only include if matches enrolledClasses selection
+      if (enrolledClasses.length > 0) {
+        const cnLower = ev.summary.toLowerCase();
+        let matched = enrolledClasses.some(s => cnLower.includes(String(s).toLowerCase()));
+        if (!matched) continue;
+      }
+      localEvents.push(ev);
+    }
+
+    // determine time range for listing remote events (min and max from localEvents)
+    if (localEvents.length === 0) { alert('No events found to sync.'); return; }
+    const times = localEvents.map(e => e.startRfc3339);
+    const minTime = times.reduce((a,b) => a < b ? a : b);
+    const maxTime = localEvents.map(e => e.endRfc3339).reduce((a,b) => a > b ? a : b);
+
+    // 1) list remote events created by this app in time window
+    let remoteEvents = [];
+    let pageToken = null;
+    do {
+      const res = await listMyEvents(minTime, maxTime, pageToken);
+      if (res.items && res.items.length) remoteEvents = remoteEvents.concat(res.items);
+      pageToken = res.nextPageToken || null;
+    } while (pageToken);
+
+    // build remote map externalId -> event
+    const remoteMap = {};
+    remoteEvents.forEach(ev => {
+      const ext = ev.extendedProperties && ev.extendedProperties.private && ev.extendedProperties.private[APP_EXT_PROP_KEY];
+      if (ext) remoteMap[ext] = ev;
+    });
+
+    // 2) upsert localEvents -> remote
+    const processedExtIds = new Set();
+    for (const localEvent of localEvents) {
+      const existing = remoteMap[localEvent.externalId];
+      if (existing) {
+        // compare fields - optionally skip update if identical
+        // simple approach: always update (you can optimize by comparing start/end/summary)
+        await updateEventOnGoogle(existing.id, localEvent);
+        console.log('Updated event', localEvent.externalId);
+      } else {
+        await createEventOnGoogle(localEvent);
+        console.log('Created event', localEvent.externalId);
+      }
+      processedExtIds.add(localEvent.externalId);
+      // to be polite on quotas, optional small delay:
+      await new Promise(r => setTimeout(r, 150)); // 150ms delay between requests
+    }
+
+    // 3) delete remote events that we created earlier but are not in current localEvents
+    for (const [ext, rem] of Object.entries(remoteMap)) {
+      if (!processedExtIds.has(ext)) {
+        // delete or set status CANCELLED — we delete here
+        await deleteEventOnGoogle(rem.id);
+        console.log('Deleted old event', ext);
+        await new Promise(r => setTimeout(r, 100));
+      }
+    }
+
+    alert('Sync completed successfully!');
+  } catch (err) {
+    console.error('Sync error', err);
+    alert('Sync failed: ' + (err.message || err));
+  } finally {
+    pendingSyncFunction = null;
+  }
+}
+
+// wire button:
+document.getElementById('syncToGoogleBtn').addEventListener('click', () => {
+  syncAllEventsToGoogle();
+});
+
     </script>
 </body>
 </html>
