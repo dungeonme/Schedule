@@ -196,6 +196,15 @@
             </div>
 
             <div id="schedule-cards-container" class="schedule-cards-container flex flex-col gap-6">
+                 <div class="card">
+                    <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden text-lg font-bold py-3 shadow-md hover:shadow-lg transition-all duration-200">
+                        Download Outlook/Google Calendar File
+                    </button>
+                    <p id="download-explainer" class="text-sm text-gray-600 mt-3 text-center hidden">
+                        Download the custom calendar <code>.ics</code> file for your subjects. This file can be imported directly into Google Calendar, Outlook, or Apple Calendar to see your entire term schedule.
+                    </p>
+                </div>
+
                 <section class="grid md:grid-cols-2 gap-6">
                     <div class="card">
                         <h2 class="card-title text-xl mb-4">📅 Today <span class="text-gray-400 font-normal text-sm" id="todayDate"></span></h2>
@@ -219,14 +228,6 @@
                     </div>
                     <div id="upcomingClassesContainer"><div class="loader"></div></div>
                 </div>
-            </div>
-            
-             <div class="card">
-                <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden">Download Your Custom Calendar </button>
-                <p id="download-explainer" class="text-xs text-gray-500 mt-2 text-center hidden">
-                    This calendar file has only your subjects. Open the downloaded .ics file with Google Calendar or Outlook to add all your classes directly.
-                    <br>If the schedule is updated later, just download a new file and import it. Your calendar will update without creating duplicates.
-                </p>
             </div>
 
             <div class="card">
@@ -351,9 +352,7 @@
 
                 const toUTCFormat = (date) => {
                     if (!date || isNaN(date.getTime())) return '';
-                    // Create a new date object for UTC conversion to avoid modifying the original
-                    const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
-                    return utcDate.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
+                    return date.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
                 };
 
                 let icsString = [
@@ -809,4 +808,3 @@
     </script>
 </body>
 </html>
-
