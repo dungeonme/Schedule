@@ -352,9 +352,12 @@
                     return;
                 }
 
-                const toUTCFormat = (date) => {
+                // New function to format dates for IST without converting to UTC
+                const toISTFormat = (date) => {
                     if (!date || isNaN(date.getTime())) return '';
-                    return date.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
+                    const pad = (num) => (num < 10 ? '0' : '') + num;
+                    // Formats to YYYYMMDDTHHMMSS
+                    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
                 };
 
                 let icsString = [
@@ -362,6 +365,16 @@
                     'VERSION:2.0',
                     'PRODID:-//StudentDashboard//AkshaySharma//EN',
                     'CALSCALE:GREGORIAN',
+                    // Define the Indian Standard Time (IST) timezone
+                    'BEGIN:VTIMEZONE',
+                    'TZID:Asia/Kolkata',
+                    'BEGIN:STANDARD',
+                    'DTSTART:19700101T000000',
+                    'TZOFFSETFROM:+0530',
+                    'TZOFFSETTO:+0530',
+                    'TZNAME:IST',
+                    'END:STANDARD',
+                    'END:VTIMEZONE',
                 ].join('\r\n') + '\r\n';
 
                 const termStartDate = new Date(2025, 8, 10); // Sep 10
@@ -398,19 +411,18 @@
                     
                     eventCount++;
                     
-                    // *** FIX IMPLEMENTED HERE ***
-                    // The UID is now based on the DATE and CLASS NAME only, not the time.
-                    // This makes the ID stable even if the class is rescheduled.
                     const dateToYMD = (d) => d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
                     const uid = `${dateToYMD(classDate)}-${className.replace(/\s+/g, '')}@studentdashboard.com`;
 
 
                     const event = [
                         'BEGIN:VEVENT',
-                        `DTSTAMP:${toUTCFormat(new Date())}`,
+                        // DTSTAMP should be in UTC as per the iCalendar standard
+                        `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z'}`,
                         `UID:${uid}`,
-                        `DTSTART:${toUTCFormat(startDate)}`,
-                        `DTEND:${toUTCFormat(endDate)}`,
+                        // Specify the timezone for start and end times
+                        `DTSTART;TZID=Asia/Kolkata:${toISTFormat(startDate)}`,
+                        `DTEND;TZID=Asia/Kolkata:${toISTFormat(endDate)}`,
                         `SUMMARY:${className}`,
                         'END:VEVENT'
                     ].join('\r\n');
@@ -816,7 +828,3 @@
     </script>
 </body>
 </html>
-
-
-
-
