@@ -3,496 +3,479 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Class Schedule - Test (fixed)</title>
+  <title>Class Schedule — Search Fixed</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Poppins', sans-serif; background-color:#F0F4F8; }
-    /* (kept your CSS unchanged for brevity — you can paste your original styles here) */
-    .btn { background:#4A90E2;color:#fff;padding:.75rem 1.25rem;border-radius:.5rem;border:none;cursor:pointer }
-    .loader { border:4px solid #f3f3f3;border-top:4px solid #4A90E2;border-radius:50%;width:36px;height:36px;animation:spin 1s linear infinite;margin:1rem auto; }
-    @keyframes spin { to { transform:rotate(360deg); } }
+    .btn { background:#4A90E2;color:#fff;padding:.6rem 1rem;border-radius:.5rem;border:none;cursor:pointer; font-weight:600; }
+    .btn.secondary { background:#e5e7eb; color:#111827; }
+    .search-results { position:absolute; z-index:40; background:#fff; border:1px solid #e5e7eb; border-top:0; width:100%; max-height:260px; overflow:auto; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+    .search-result-item { padding:10px 12px; cursor:pointer; }
+    .search-result-item:hover { background:#f3f4f6; }
+    .tag { background:#2563eb; color:#fff; padding:6px 10px; border-radius:999px; display:inline-flex; gap:8px; align-items:center; margin:4px; font-weight:600; }
+    .tag button { background:transparent; border:0; color:#fff; cursor:pointer; font-weight:700; }
+    .loader { border:4px solid #f3f3f3; border-top:4px solid #4A90E2; border-radius:50%; width:36px; height:36px; animation:spin 1s linear infinite; margin:16px auto; }
+    @keyframes spin { to { transform:rotate(360deg);} }
+    .hidden { display:none; }
+    .card { background:white; padding:16px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.04); border:1px solid #e6edf3; }
   </style>
 </head>
-<body>
-  <div class="container mx-auto p-6 max-w-4xl">
-    <h1 class="text-2xl font-bold mb-4">Class Schedule — Test (fixed)</h1>
-    <p id="connectionStatus" class="text-gray-500 mb-4">Connecting...</p>
+<body class="p-6">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Class Schedule — Test (search fixed)</h1>
+    <p id="connectionStatus" class="text-gray-500 mb-4">Connecting to sheet…</p>
 
-    <div>
-      <input id="subjectSearchInput" class="p-3 border rounded w-full mb-2" placeholder="Search and add subject...">
-      <div id="searchResults" class="hidden border bg-white"></div>
-      <div id="selectedTagsContainer" class="flex gap-2 mt-2"></div>
+    <div class="card mb-4">
+      <label class="block mb-2 font-semibold">Search and add a subject</label>
+      <div style="position:relative;">
+        <input id="subjectSearchInput" type="text" placeholder="Type subject (e.g. FE, SF)..." class="w-full p-3 border rounded-md" autocomplete="off" />
+        <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+      </div>
+      <div id="selectedTagsContainer" style="margin-top:12px;"></div>
     </div>
 
-    <div class="mt-4">
-      <button id="syncToGoogleBtn" class="btn mr-2">Sync to Google Calendar</button>
-      <button id="downloadMonthBtn" class="btn" style="background:green">Download Outlook/Google Calendar File</button>
+    <div class="flex gap-3 mb-6">
+      <button id="downloadMonthBtn" class="btn secondary" disabled>Download Outlook/Google Calendar File</button>
+      <button id="syncToGoogleBtn" class="btn" disabled>Sync to Google Calendar</button>
+      <button id="refreshBtn" class="btn secondary">Refresh Data</button>
     </div>
 
-    <div id="todayClasses" class="mt-6"><div class="loader"></div></div>
-    <div id="upcomingClassesContainer" class="mt-6"><div class="loader"></div></div>
-
-    <div style="margin-top:36px">
-      <button id="refreshBtn" class="btn">Refresh Data</button>
-    </div>
+    <div id="todayClasses" class="card mb-4"><div class="loader"></div></div>
+    <div id="upcomingClassesContainer" class="card"><div class="loader"></div></div>
   </div>
 
-  <!-- Google identity library -->
+  <!-- Google Identity (only needed if you test Sync) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <script>
-  // --------------- CONFIG ---------------
-  // Replace this with your Google OAuth Client ID
-  const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-  const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
-  const APP_EXT_PROP_KEY = 'studentdashboard_id';
-  const APP_OWNER_FLAG = 'studentdashboard_owner';
+  (function(){
+    // ---------------- CONFIG ----------------
+    const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // replace with your own client id for Google Sync
+    const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+    const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
 
-  // Sheets API URL (your public spreadsheet values endpoint)
-  const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+    // ---------------- state ----------------
+    let allSheetData = [];     // raw sheet value arrays
+    let allClasses = [];       // deduped subject list available for search
+    let enrolledClasses = [];  // user selected subjects (tags)
+    let tokenResponse = null;
+    let tokenClient = null;
+    let pendingSyncFunction = null;
 
-  // --------------- STATE ---------------
-  let allSheetData = [];       // loaded sheet rows as arrays
-  let enrolledClasses = [];    // user-selected subjects
-  let tokenResponse = null;
-  let pendingSyncFunction = null;
+    // ---------------- small helpers ----------------
+    const q = (sel) => document.querySelector(sel);
+    const qa = (sel) => Array.from(document.querySelectorAll(sel));
+    function escapeHtml(s){ return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+    function pad2(n){ return (n<10? '0'+n : ''+n); }
 
-  // --------------- UTIL: date & time parsing ---------------
-  function pad2(n){ return (n<10? '0'+n : ''+n); }
-
-  // parseDate robustly: prefer DD/MM/YYYY (sheet likely uses day-first)
-  function parseDate(dateString) {
-    if (!dateString) return null;
-    const s = String(dateString).trim();
-    // Accept common separators
-    if (s.includes('/')) {
-      const parts = s.split('/').map(p => p.trim());
-      if (parts.length === 3) {
-        let a = parseInt(parts[0],10), b = parseInt(parts[1],10), c = parseInt(parts[2],10);
-        if (isNaN(a)||isNaN(b)||isNaN(c)) return null;
-        // heuristics: if first part > 12 => day-first (DD/MM/YYYY)
-        if (a > 12) {
-          const day = a, month = b, year = (c < 100 ? 2000 + c : c);
-          return new Date(year, month -1, day);
-        }
-        // else ambiguous: if second part > 12 treat it as DD/MM; else assume DD/MM as sheet is day-first
-        if (b > 12) {
-          const day = a, month = b, year = (c < 100 ? 2000 + c : c);
-          return new Date(year, month -1, day);
-        }
-        // default to day-first (DD/MM/YYYY)
-        const day = a, month = b, year = (c < 100 ? 2000 + c : c);
-        return new Date(year, month -1, day);
-      }
-    }
-    // fallback parse
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  // parse times like "15:00", "3:30 PM", "3pm", "03:00"
-  function parseTimeString(tstr) {
-    if (!tstr) return null;
-    const s = String(tstr).trim().toLowerCase();
-    // Normalize
-    let norm = s.replace(/\./g, ':').replace(/\s+/g,' ');
-    // handle 24hr hh:mm
-    let m = norm.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
-    if (!m) return null;
-    let hh = parseInt(m[1],10);
-    let mm = m[2] ? parseInt(m[2],10) : 0;
-    let ap = m[3];
-    if (ap) {
-      ap = ap.toLowerCase();
-      if (ap === 'pm' && hh < 12) hh += 12;
-      if (ap === 'am' && hh === 12) hh = 0;
-    }
-    return { hours: hh, minutes: mm };
-  }
-
-  function toRFC3339_Kolkata(dateObj) {
-    // produce RFC3339 with +05:30
-    const yyyy = dateObj.getFullYear();
-    const mm = pad2(dateObj.getMonth()+1);
-    const dd = pad2(dateObj.getDate());
-    const hh = pad2(dateObj.getHours());
-    const min = pad2(dateObj.getMinutes());
-    return `${yyyy}-${mm}-${dd}T${hh}:${min}:00+05:30`;
-  }
-
-  // --------------- UI Helpers ---------------
-  function showToast(msg, type='success') {
-    const el = document.createElement('div');
-    el.textContent = msg;
-    el.style.position = 'fixed';
-    el.style.top = '20px';
-    el.style.right = '20px';
-    el.style.padding = '10px 14px';
-    el.style.zIndex = 9999;
-    el.style.background = type === 'success' ? '#22c55e' : '#ef4444';
-    el.style.color = 'white';
-    el.style.borderRadius = '8px';
-    document.body.appendChild(el);
-    setTimeout(()=> el.remove(), 3500);
-  }
-
-  // --------------- Sheet fetch & render ---------------
-  async function refreshData() {
-    document.getElementById('connectionStatus').textContent = 'Loading spreadsheet...';
-    try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error('Sheet fetch failed: ' + res.status);
-      const json = await res.json();
-      allSheetData = json.values || [];
-      document.getElementById('connectionStatus').textContent = 'Spreadsheet loaded';
-      renderTodayTomorrow();
-      populateMasterClassList();
-    } catch (err) {
-      console.error(err);
-      document.getElementById('connectionStatus').textContent = '⚠️ Connection failed';
-      showToast('Failed to load sheet: ' + err.message, 'error');
-    }
-  }
-
-  function populateMasterClassList() {
-    // Build class dropdown/search data from column 10 (index 9) as your original code did
-    const unique = new Set();
-    for (let i=1;i<allSheetData.length;i++){
-      const row = allSheetData[i];
-      if (row && row[9]) unique.add(row[9].toString().trim());
-    }
-    const list = Array.from(unique).sort();
-    // simple rendering into selectedTags container if user already picked
-    const tagsContainer = document.getElementById('selectedTagsContainer');
-    tagsContainer.innerHTML = enrolledClasses.map(s => `<div style="background:#3b82f6;color:white;padding:6px 10px;border-radius:999px">${s}</div>`).join('');
-    // also attach search logic
-    const input = document.getElementById('subjectSearchInput');
-    const results = document.getElementById('searchResults');
-    input.addEventListener('input', () => {
-      const q = input.value.toLowerCase().trim();
-      if (!q) { results.classList.add('hidden'); results.innerHTML=''; return; }
-      const filtered = list.filter(x => x.toLowerCase().includes(q) && !enrolledClasses.includes(x)).slice(0,20);
-      results.innerHTML = filtered.map(x => `<div class="p-2 cursor-pointer" data-val="${x}">${x}</div>`).join('') || '<div class="p-2 text-sm text-gray-500">No matches</div>';
-      results.classList.remove('hidden');
-    });
-    results.addEventListener('click', e => {
-      const t = e.target.closest('[data-val]');
-      if (!t) return;
-      enrolledClasses.push(t.dataset.val);
-      enrolledClasses.sort();
-      input.value = '';
-      results.classList.add('hidden');
-      populateMasterClassList();
-      showToast('Added subject: ' + t.dataset.val);
-    });
-  }
-
-  function renderTodayTomorrow() {
-    const today = new Date(), tomorrow = new Date(); tomorrow.setDate(today.getDate()+1);
-    renderClassesForDate(today, 'todayClasses');
-    renderClassesForDate(tomorrow, 'upcomingClassesContainer');
-  }
-
-  function isSameDay(a,b) { return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-
-  function renderClassesForDate(date, containerId) {
-    const container = document.getElementById(containerId);
-    const rows = [];
-    for (let i=1;i<allSheetData.length;i++){
-      const row = allSheetData[i];
-      if (!row || !row[0] || !row[1] || !row[2]) continue;
-      const d = parseDate(row[0]);
-      if (!d || !isSameDay(d, date)) continue;
-      const className = (row[2]||'').toString().trim();
-      if (enrolledClasses.length>0 && !enrolledClasses.some(s => className.toLowerCase().includes(s.toLowerCase()))) continue;
-      rows.push({ class: className, time: row[1], location: row[4] || '', professor: row[6] || 'N/A' });
-    }
-    if (rows.length === 0) container.innerHTML = '<p class="text-gray-500 p-4">No classes</p>';
-    else container.innerHTML = rows.map(r => `<div style="background:white;padding:10px;border-radius:8px;margin-bottom:6px"><strong>${r.class}</strong><div>${r.time} • ${r.location} • Prof: ${r.professor}</div></div>`).join('');
-  }
-
-  // --------------- ICS generator (keeps UI same) ---------------
-  function generateMonthlyICS() {
-    if (enrolledClasses.length === 0) { showToast('Select subjects first', 'error'); return; }
-    const termStart = new Date(2025,8,10), termEnd = new Date(2025,11,6);
-    let ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//StudentDashboard//AkshaySharma//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VTIMEZONE',
-      'TZID:Asia/Kolkata',
-      'BEGIN:STANDARD',
-      'DTSTART:19700101T000000',
-      'TZOFFSETFROM:+0530',
-      'TZOFFSETTO:+0530',
-      'TZNAME:IST',
-      'END:STANDARD',
-      'END:VTIMEZONE'
-    ].join('\r\n') + '\r\n';
-
-    let count = 0;
-    for (let i=1;i<allSheetData.length;i++){
-      const row = allSheetData[i];
-      if (!row || !row[0] || !row[1] || !row[2]) continue;
-      const classDate = parseDate(row[0]);
-      if (!classDate) continue;
-      if (classDate < termStart || classDate > termEnd) continue;
-      const className = (row[2]||'').toString().trim();
-      if (enrolledClasses.length>0 && !enrolledClasses.some(s => className.toLowerCase().includes(s.toLowerCase()))) continue;
-
-      const timeParts = (row[1]||'').split(/[-–—\u2013\u2014]|to/i).map(s => s.trim()).filter(Boolean);
-      if (timeParts.length<2) continue;
-      const startT = parseTimeString(timeParts[0]);
-      const endT = parseTimeString(timeParts[1]);
-      if (!startT || !endT) continue;
-
-      const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startT.hours, startT.minutes);
-      const endDate   = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endT.hours, endT.minutes);
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
-
-      // Stable UID: prefer an existing rowNN cell, else fallback to row index + subject
-      let stable = null;
-      for (const c of row) {
-        if (typeof c === 'string' && /^row\d+/i.test(c.trim())) { stable = c.trim(); break; }
-      }
-      const uid = stable ? `${stable}@studentdashboard.com` : `r${i}-${className.replace(/\s+/g,'') }@studentdashboard.com`;
-
-      const vevent = [
-        'BEGIN:VEVENT',
-        `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g,'').slice(0,-4)}Z`,
-        `UID:${uid}`,
-        `DTSTART;TZID=Asia/Kolkata:${startDate.getFullYear()}${pad2(startDate.getMonth()+1)}${pad2(startDate.getDate())}T${pad2(startDate.getHours())}${pad2(startDate.getMinutes())}00`,
-        `DTEND;TZID=Asia/Kolkata:${endDate.getFullYear()}${pad2(endDate.getMonth()+1)}${pad2(endDate.getDate())}T${pad2(endDate.getHours())}${pad2(endDate.getMinutes())}00`,
-        `SUMMARY:${className}`,
-        `DESCRIPTION:Professor: ${row[6] ? row[6] : 'N/A'}`,
-        `LOCATION:${row[4] ? row[4] : ''}`,
-        'END:VEVENT'
-      ].join('\r\n') + '\r\n';
-
-      ics += vevent;
-      count++;
-    }
-
-    ics += 'END:VCALENDAR';
-
-    if (count === 0) { showToast('No classes found for selected subjects', 'error'); return; }
-
-    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'class_schedule.ics';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(a.href);
-    showToast(`Generated ICS with ${count} events`);
-  }
-
-  // --------------- Google Calendar Sync code (client-side upsert) ---------------
-  // We'll use Google Identity Services token client and Calendar REST API.
-  let tokenClient = null;
-
-  function initTokenClient() {
-    if (!window.google || !google.accounts || !google.accounts.oauth2) {
-      console.warn('Google Identity library not loaded yet.');
-      return;
-    }
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPE,
-      callback: (resp) => {
-        tokenResponse = resp;
-        console.log('Got token response', resp);
-        if (pendingSyncFunction) {
-          const f = pendingSyncFunction;
-          pendingSyncFunction = null;
-          f();
+    // ---------------- parsing helpers (robust) ----------------
+    function parseDate(dateString) {
+      if(!dateString) return null;
+      const s = String(dateString).trim();
+      if (s.includes('/')) {
+        const parts = s.split('/').map(p => p.trim());
+        if (parts.length === 3) {
+          let a=parseInt(parts[0],10), b=parseInt(parts[1],10), c=parseInt(parts[2],10);
+          if (isNaN(a)||isNaN(b)||isNaN(c)) return null;
+          if (a>12) { const day=a, month=b, year=(c<100?2000+c:c); return new Date(year, month-1, day); }
+          // default to day-first for this sheet
+          const day=a, month=b, year=(c<100?2000+c:c);
+          return new Date(year, month-1, day);
         }
       }
-    });
-  }
-
-  function requestGoogleToken() {
-    if (!tokenClient) initTokenClient();
-    tokenClient.requestAccessToken({ prompt: 'consent' });
-  }
-
-  async function gcalFetch(url, method='GET', body=null) {
-    if (!tokenResponse || !tokenResponse.access_token) throw new Error('No OAuth token; request access first');
-    const headers = { Authorization: 'Bearer ' + tokenResponse.access_token };
-    const opts = { method, headers };
-    if (body) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-    const r = await fetch(url, opts);
-    if (!r.ok) {
-      const text = await r.text();
-      throw new Error(`GCal API ${r.status}: ${text}`);
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
     }
-    if (r.status === 204) return {};
-    return await r.json();
-  }
-
-  async function listMyEvents(timeMin, timeMax, pageToken=null) {
-    const params = new URLSearchParams({ singleEvents: 'true', maxResults: '2500', orderBy: 'startTime' });
-    if (timeMin) params.set('timeMin', timeMin);
-    if (timeMax) params.set('timeMax', timeMax);
-    params.set('privateExtendedProperty', encodeURIComponent(`${APP_OWNER_FLAG}=true`));
-    if (pageToken) params.set('pageToken', pageToken);
-    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params.toString()}`;
-    return await gcalFetch(url, 'GET');
-  }
-
-  async function findEventByExternalId(externalId) {
-    const param = encodeURIComponent(`${APP_EXT_PROP_KEY}=${externalId}`);
-    const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?privateExtendedProperty=${param}&singleEvents=true&maxResults=1`;
-    const res = await gcalFetch(url, 'GET');
-    return (res.items && res.items.length) ? res.items[0] : null;
-  }
-
-  async function createEventOnGoogle(event) {
-    const body = {
-      summary: event.summary,
-      description: event.description || '',
-      location: event.location || '',
-      start: { dateTime: event.startRfc3339 },
-      end:   { dateTime: event.endRfc3339 },
-      extendedProperties: { private: { [APP_EXT_PROP_KEY]: event.externalId, [APP_OWNER_FLAG]: 'true' } }
-    };
-    return await gcalFetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', 'POST', body);
-  }
-
-  async function updateEventOnGoogle(eventId, event) {
-    const body = {
-      summary: event.summary,
-      description: event.description || '',
-      location: event.location || '',
-      start: { dateTime: event.startRfc3339 },
-      end:   { dateTime: event.endRfc3339 },
-      extendedProperties: { private: { [APP_EXT_PROP_KEY]: event.externalId, [APP_OWNER_FLAG]: 'true' } }
-    };
-    return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, 'PATCH', body);
-  }
-
-  async function deleteEventOnGoogle(eventId) {
-    return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, 'DELETE');
-  }
-
-  function rowToEvent(row, rowIndex) {
-    // columns: date row[0], time row[1], subject row[2], location row[4], professor row[6]
-    const rawDate = row[0], rawTime = row[1];
-    const subjectCandidates = [row[2], row[9], row[10], row[11], row[3]];
-    let className = null;
-    for (const c of subjectCandidates) { if (c && String(c).trim()) { className = String(c).trim(); break; } }
-    if (!rawDate || !rawTime || !className) return null;
-    const dateObj = parseDate(rawDate);
-    if (!dateObj) return null;
-    const timeParts = String(rawTime).split(/[-–—\u2013\u2014]|to/i).map(s => s.trim()).filter(Boolean);
-    if (timeParts.length < 2) return null;
-    const startT = parseTimeString(timeParts[0]), endT = parseTimeString(timeParts[1]);
-    if (!startT || !endT) return null;
-    const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startT.hours, startT.minutes);
-    const endDate   = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endT.hours, endT.minutes);
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
-    // stable external id: prefer rowNN cell if available
-    let stable = null;
-    for (const cell of row) {
-      if (typeof cell === 'string' && /^row\d+/i.test(cell.trim())) { stable = cell.trim(); break; }
+    function parseTimeString(tstr) {
+      if(!tstr) return null;
+      const s = String(tstr).trim().toLowerCase().replace(/\./g,':').replace(/\s+/g,' ');
+      const m = s.match(/(\d{1,2})(?::|:)?(\d{2})?\s*(am|pm)?/i);
+      if(!m) return null;
+      let hh = parseInt(m[1],10);
+      let mm = m[2] ? parseInt(m[2],10) : 0;
+      const ap = m[3];
+      if (ap) {
+        if (ap.toLowerCase() === 'pm' && hh < 12) hh += 12;
+        if (ap.toLowerCase() === 'am' && hh === 12) hh = 0;
+      }
+      return { hours: hh, minutes: mm };
     }
-    const externalId = stable ? stable : `r${rowIndex}-${className.replace(/\s+/g,'_').replace(/[^\w\-]/g,'').slice(0,40)}`;
-    return {
-      externalId,
-      summary: className,
-      description: `Professor: ${row[6] ? row[6] : 'N/A'}`,
-      location: (row[4] || '').toString(),
-      startRfc3339: toRFC3339_Kolkata(startDate),
-      endRfc3339: toRFC3339_Kolkata(endDate)
-    };
-  }
+    function toRFC3339_Kolkata(dateObj) {
+      const yyyy = dateObj.getFullYear();
+      const mm = pad2(dateObj.getMonth()+1);
+      const dd = pad2(dateObj.getDate());
+      const hh = pad2(dateObj.getHours());
+      const min = pad2(dateObj.getMinutes());
+      return `${yyyy}-${mm}-${dd}T${hh}:${min}:00+05:30`;
+    }
 
-  async function syncAllEventsToGoogle() {
-    try {
-      if (!tokenResponse || !tokenResponse.access_token) {
-        pendingSyncFunction = syncAllEventsToGoogle;
-        requestGoogleToken();
+    // ---------------- UI: search + tags ----------------
+    const searchInput = q('#subjectSearchInput');
+    const resultsEl = q('#searchResults');
+    const tagsContainer = q('#selectedTagsContainer');
+    const downloadBtn = q('#downloadMonthBtn');
+    const syncBtn = q('#syncToGoogleBtn');
+    const refreshBtn = q('#refreshBtn');
+
+    function buildAllClassesFromSheet() {
+      // check multiple candidate columns in each row for subject names
+      const candidates = new Set();
+      for (let i=1; i<allSheetData.length; i++){
+        const row = allSheetData[i] || [];
+        // candidate columns (0-based): [2,9,10,11,3] like we used earlier
+        [2,9,10,11,3].forEach(idx => {
+          const v = row[idx];
+          if (v && String(v).trim()) candidates.add(String(v).trim());
+        });
+      }
+      allClasses = Array.from(candidates).sort((a,b)=> a.localeCompare(b));
+    }
+
+    function showSearchResults(list) {
+      if (!list || list.length === 0) {
+        resultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No matches</div>';
+        resultsEl.classList.remove('hidden');
         return;
       }
+      resultsEl.innerHTML = list.map(item => `<div class="search-result-item" data-val="${escapeHtml(item)}">${escapeHtml(item)}</div>`).join('');
+      resultsEl.classList.remove('hidden');
+    }
 
-      const localEvents = [];
-      for (let i=1;i<allSheetData.length;i++){
-        const ev = rowToEvent(allSheetData[i], i);
-        if (!ev) continue;
-        // match enrolled classes if set
+    function updateTagsUI() {
+      tagsContainer.innerHTML = enrolledClasses.map(s => {
+        return `<span class="tag" data-sub="${escapeHtml(s)}">${escapeHtml(s)} <button aria-label="remove" class="remove-tag" data-sub="${escapeHtml(s)}">&times;</button></span>`;
+      }).join('') || '<div class="text-gray-500">No subjects selected</div>';
+      // toggle buttons
+      const enabled = enrolledClasses.length > 0;
+      downloadBtn.disabled = !enabled;
+      syncBtn.disabled = !enabled;
+      downloadBtn.classList.toggle('btn', enabled);
+      syncBtn.classList.toggle('btn', enabled);
+    }
+
+    // click handler for result items
+    resultsEl.addEventListener('click', (ev) => {
+      const item = ev.target.closest('[data-val]');
+      if (!item) return;
+      const val = item.getAttribute('data-val');
+      if (!val) return;
+      if (!enrolledClasses.includes(val)) {
+        enrolledClasses.push(val);
+        enrolledClasses.sort((a,b)=>a.localeCompare(b));
+      }
+      searchInput.value = '';
+      resultsEl.classList.add('hidden');
+      updateTagsUI();
+      renderTodayTomorrow(); // update classes panels immediately
+    });
+
+    // remove tag
+    tagsContainer.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('.remove-tag');
+      if (!btn) return;
+      const sub = btn.getAttribute('data-sub');
+      enrolledClasses = enrolledClasses.filter(x => x !== sub);
+      updateTagsUI();
+      renderTodayTomorrow();
+    });
+
+    // input typing -> filter
+    searchInput.addEventListener('input', (e) => {
+      const qstr = e.target.value.trim().toLowerCase();
+      if (!qstr) { resultsEl.classList.add('hidden'); resultsEl.innerHTML=''; return; }
+      const filtered = allClasses.filter(x => x.toLowerCase().includes(qstr) && !enrolledClasses.includes(x)).slice(0,50);
+      showSearchResults(filtered);
+    });
+
+    // hide on outside click
+    document.addEventListener('click', (ev) => {
+      if (!ev.target.closest('#subjectSearchInput') && !ev.target.closest('#searchResults')) {
+        resultsEl.classList.add('hidden');
+      }
+    });
+
+    // ---------------- Sheet fetch & rendering ----------------
+    async function refreshData() {
+      q('#connectionStatus').textContent = 'Loading spreadsheet...';
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error('Sheet fetch failed: ' + res.status);
+        const json = await res.json();
+        allSheetData = json.values || [];
+        buildAllClassesFromSheet();
+        q('#connectionStatus').textContent = 'Spreadsheet loaded — ' + (allClasses.length) + ' subjects detected';
+        updateTagsUI();
+        renderTodayTomorrow();
+      } catch (err) {
+        console.error(err);
+        q('#connectionStatus').textContent = '⚠️ Connection failed';
+      }
+    }
+
+    function isSameDay(a,b){ return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+
+    function renderClassesForDate(date, containerId) {
+      const container = q('#' + containerId);
+      const rows = [];
+      for (let i=1; i<allSheetData.length; i++){
+        const row = allSheetData[i] || [];
+        if (!row[0] || !row[1]) continue;
+        const classDate = parseDate(row[0]);
+        if (!classDate || !isSameDay(classDate, date)) continue;
+        // find class name from candidate columns
+        let className = null;
+        [2,9,10,11,3].forEach(idx => { if (!className && row[idx] && String(row[idx]).trim()) className = String(row[idx]).trim(); });
+        if (!className) continue;
         if (enrolledClasses.length > 0) {
-          const cn = ev.summary.toLowerCase();
-          if (!enrolledClasses.some(s => cn.includes(s.toLowerCase()))) continue;
+          const cn = className.toLowerCase();
+          if (!enrolledClasses.some(s => cn.includes(String(s).toLowerCase()))) continue;
         }
-        localEvents.push(ev);
+        rows.push({ class: className, time: row[1], location: row[4] || '', professor: row[6] || 'N/A' });
       }
+      if (rows.length === 0) {
+        container.innerHTML = '<div style="padding:16px;color:#6b7280">No classes</div>';
+      } else {
+        container.innerHTML = rows.map(r => `<div style="padding:12px;border-bottom:1px solid #eef2f7"><div style="font-weight:700">${escapeHtml(r.class)}</div><div style="color:#475569;margin-top:6px">${escapeHtml(r.time)} • ${escapeHtml(r.location)} • Prof: ${escapeHtml(r.professor)}</div></div>`).join('');
+      }
+    }
 
-      if (localEvents.length === 0) { alert('No events found to sync.'); return; }
-      const minTime = localEvents.map(e=>e.startRfc3339).reduce((a,b)=> a<b?a:b);
-      const maxTime = localEvents.map(e=>e.endRfc3339).reduce((a,b)=> a>b?a:b);
+    function renderTodayTomorrow() {
+      const today = new Date();
+      const tomorrow = new Date(); tomorrow.setDate(today.getDate()+1);
+      renderClassesForDate(today, 'todayClasses');
+      renderClassesForDate(tomorrow, 'upcomingClassesContainer');
+    }
 
-      let remoteEvents = [];
-      let pageToken = null;
-      do {
-        const res = await listMyEvents(minTime, maxTime, pageToken);
-        if (res.items && res.items.length) remoteEvents = remoteEvents.concat(res.items);
-        pageToken = res.nextPageToken || null;
-      } while (pageToken);
+    // ---------------- ICS generation (unchanged) ----------------
+    function generateMonthlyICS() {
+      if (enrolledClasses.length === 0) { alert('Select subjects first'); return; }
+      const termStart = new Date(2025,8,10), termEnd = new Date(2025,11,6);
+      let icsHeader = [
+        'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StudentDashboard//AkshaySharma//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+        'BEGIN:VTIMEZONE','TZID:Asia/Kolkata','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0530','TZOFFSETTO:+0530','TZNAME:IST','END:STANDARD','END:VTIMEZONE'
+      ].join('\r\n') + '\r\n';
+      let icsBody = '';
+      let count = 0;
+      for (let i=1;i<allSheetData.length;i++){
+        const row = allSheetData[i] || [];
+        if (!row[0] || !row[1]) continue;
+        const classDate = parseDate(row[0]);
+        if (!classDate || classDate < termStart || classDate > termEnd) continue;
+        // subject
+        let className = null;
+        [2,9,10,11,3].forEach(idx => { if (!className && row[idx] && String(row[idx]).trim()) className = String(row[idx]).trim(); });
+        if (!className) continue;
+        if (enrolledClasses.length > 0) {
+          const cn = className.toLowerCase();
+          if (!enrolledClasses.some(s => cn.includes(String(s).toLowerCase()))) continue;
+        }
+        // parse time
+        const timeParts = String(row[1]).split(/[-–—\u2013\u2014]|to/i).map(s=>s.trim()).filter(Boolean);
+        if (timeParts.length < 2) continue;
+        const startT = parseTimeString(timeParts[0]), endT = parseTimeString(timeParts[1]);
+        if (!startT || !endT) continue;
+        const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startT.hours, startT.minutes);
+        const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endT.hours, endT.minutes);
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
+        // stable UID: prefer a 'rowNN' value if present in the row, else fallback to row index
+        let stable = null;
+        for (const cell of row) {
+          if (typeof cell === 'string' && /^row\d+/i.test(cell.trim())) { stable = cell.trim(); break; }
+        }
+        const uid = stable ? `${stable}@studentdashboard.com` : `r${i}-${className.replace(/\s+/g,'') }@studentdashboard.com`;
+        const dtstamp = new Date().toISOString().replace(/[-:.]/g,'').slice(0,-4) + 'Z';
+        const dtstart = `${startDate.getFullYear()}${pad2(startDate.getMonth()+1)}${pad2(startDate.getDate())}T${pad2(startDate.getHours())}${pad2(startDate.getMinutes())}00`;
+        const dtend = `${endDate.getFullYear()}${pad2(endDate.getMonth()+1)}${pad2(endDate.getDate())}T${pad2(endDate.getHours())}${pad2(endDate.getMinutes())}00`;
+        const description = `Professor: ${row[6] ? row[6] : 'N/A'}`;
+        const location = row[4] ? row[4] : '';
+        icsBody += [
+          'BEGIN:VEVENT',
+          `DTSTAMP:${dtstamp}`,
+          `UID:${uid}`,
+          `DTSTART;TZID=Asia/Kolkata:${dtstart}`,
+          `DTEND;TZID=Asia/Kolkata:${dtend}`,
+          `SUMMARY:${className}`,
+          `DESCRIPTION:${description.replace(/\n/g,'\\n').replace(/,/g,'\\,')}`,
+          `LOCATION:${location.replace(/,/g,'\\,')}`,
+          'END:VEVENT'
+        ].join('\r\n') + '\r\n';
+        count++;
+      }
+      const ics = icsHeader + icsBody + 'END:VCALENDAR';
+      if (count === 0) { alert('No classes found for selected subjects'); return; }
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'class_schedule.ics';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(a.href);
+      alert('Generated ICS with ' + count + ' events');
+    }
 
-      const remoteMap = {};
-      remoteEvents.forEach(ev => {
-        const ext = ev.extendedProperties && ev.extendedProperties.private && ev.extendedProperties.private[APP_EXT_PROP_KEY];
-        if (ext) remoteMap[ext] = ev;
+    // ---------------- Google Sync (kept robust, unchanged) ----------------
+    // Basic token client init + wrappers. Keep CLIENT_ID replaced before testing.
+    function initTokenClient() {
+      if (!window.google || !google.accounts || !google.accounts.oauth2) return;
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPE,
+        callback: (resp) => {
+          tokenResponse = resp;
+          if (pendingSyncFunction) { const fn = pendingSyncFunction; pendingSyncFunction = null; fn(); }
+        }
       });
-
-      const processed = new Set();
-      for (const localEvent of localEvents) {
-        const existing = remoteMap[localEvent.externalId];
-        if (existing) {
-          await updateEventOnGoogle(existing.id, localEvent);
-          console.log('Updated', localEvent.externalId);
-        } else {
-          await createEventOnGoogle(localEvent);
-          console.log('Created', localEvent.externalId);
-        }
-        processed.add(localEvent.externalId);
-        await new Promise(r => setTimeout(r, 150));
-      }
-
-      for (const ext in remoteMap) {
-        if (!processed.has(ext)) {
-          await deleteEventOnGoogle(remoteMap[ext].id);
-          console.log('Deleted remote leftover', ext);
-          await new Promise(r => setTimeout(r, 100));
-        }
-      }
-
-      alert('Sync completed!');
-    } catch (err) {
-      console.error('Sync error', err);
-      alert('Sync failed: ' + (err.message || err));
     }
-  }
-
-  // --------------- wiring & init ---------------
-  document.getElementById('refreshBtn').addEventListener('click', refreshData);
-  document.getElementById('downloadMonthBtn').addEventListener('click', generateMonthlyICS);
-  document.getElementById('syncToGoogleBtn').addEventListener('click', syncAllEventsToGoogle);
-
-  // init google token client once the library has loaded (poll quickly)
-  const gLoadInterval = setInterval(() => {
-    if (window.google && google.accounts && google.accounts.oauth2) {
-      clearInterval(gLoadInterval);
-      initTokenClient();
+    function requestGoogleToken() {
+      if (!tokenClient) initTokenClient();
+      tokenClient.requestAccessToken({ prompt: 'consent' });
     }
-  }, 200);
+    async function gcalFetch(url, method='GET', body=null) {
+      if (!tokenResponse || !tokenResponse.access_token) throw new Error('No access token');
+      const headers = { Authorization: 'Bearer ' + tokenResponse.access_token };
+      const opts = { method, headers };
+      if (body) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      const r = await fetch(url, opts);
+      if (!r.ok) { const text = await r.text(); throw new Error('GCal API ' + r.status + ': ' + text); }
+      if (r.status === 204) return {};
+      return await r.json();
+    }
 
-  // initial sheet fetch
-  refreshData();
+    // helper row->event (for sync)
+    function rowToEvent(row, rowIndex) {
+      const rawDate = row[0], rawTime = row[1];
+      const subjectCandidates = [row[2], row[9], row[10], row[11], row[3]];
+      let className = null;
+      for (const c of subjectCandidates) if (!className && c && String(c).trim()) className = String(c).trim();
+      if (!rawDate || !rawTime || !className) return null;
+      const dateObj = parseDate(rawDate);
+      if (!dateObj) return null;
+      const timeParts = String(rawTime).split(/[-–—\u2013\u2014]|to/i).map(s=>s.trim()).filter(Boolean);
+      if (timeParts.length < 2) return null;
+      const startT = parseTimeString(timeParts[0]), endT = parseTimeString(timeParts[1]);
+      if (!startT || !endT) return null;
+      const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startT.hours, startT.minutes);
+      const endDate   = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endT.hours, endT.minutes);
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
+      // stable external id
+      let stable = null;
+      for (const cell of row) if (typeof cell === 'string' && /^row\d+/i.test(cell.trim())) { stable = cell.trim(); break; }
+      const externalId = stable ? stable : `r${rowIndex}-${className.replace(/\s+/g,'_').replace(/[^\w\-]/g,'').slice(0,30)}`;
+      return {
+        externalId,
+        summary: className,
+        description: `Professor: ${row[6] ? row[6] : 'N/A'}`,
+        location: (row[4] || '').toString(),
+        startRfc3339: toRFC3339_Kolkata(startDate),
+        endRfc3339: toRFC3339_Kolkata(endDate)
+      };
+    }
+
+    // wrappers for create/update/list/delete remote events — same approach as earlier guidance
+    async function listMyEvents(timeMin, timeMax, pageToken=null) {
+      const params = new URLSearchParams({ singleEvents:'true', maxResults:'2500', orderBy:'startTime' });
+      if (timeMin) params.set('timeMin', timeMin);
+      if (timeMax) params.set('timeMax', timeMax);
+      params.set('privateExtendedProperty', encodeURIComponent('studentdashboard_owner=true'));
+      if (pageToken) params.set('pageToken', pageToken);
+      return await gcalFetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?' + params.toString(), 'GET');
+    }
+    async function findEventByExternalId(externalId) {
+      const param = encodeURIComponent(`studentdashboard_id=${externalId}`);
+      const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?privateExtendedProperty=${param}&singleEvents=true&maxResults=1`;
+      const res = await gcalFetch(url,'GET');
+      return (res.items && res.items.length) ? res.items[0] : null;
+    }
+    async function createEventOnGoogle(event) {
+      const body = { summary:event.summary, description:event.description||'', location:event.location||'', start:{dateTime:event.startRfc3339}, end:{dateTime:event.endRfc3339}, extendedProperties:{ private:{ studentdashboard_id:event.externalId, studentdashboard_owner:'true' } } };
+      return await gcalFetch('https://www.googleapis.com/calendar/v3/calendars/primary/events','POST',body);
+    }
+    async function updateEventOnGoogle(eventId, event) {
+      const body = { summary:event.summary, description:event.description||'', location:event.location||'', start:{dateTime:event.startRfc3339}, end:{dateTime:event.endRfc3339}, extendedProperties:{ private:{ studentdashboard_id:event.externalId, studentdashboard_owner:'true' } } };
+      return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,'PATCH',body);
+    }
+    async function deleteEventOnGoogle(eventId) { return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,'DELETE'); }
+
+    async function syncAllEventsToGoogle() {
+      try {
+        if (!tokenResponse || !tokenResponse.access_token) {
+          pendingSyncFunction = syncAllEventsToGoogle;
+          requestGoogleToken();
+          return;
+        }
+        // build local events
+        const localEvents = [];
+        for (let i=1;i<allSheetData.length;i++){
+          const ev = rowToEvent(allSheetData[i], i);
+          if (!ev) continue;
+          if (enrolledClasses.length > 0) {
+            const cn = ev.summary.toLowerCase();
+            if (!enrolledClasses.some(s => cn.includes(s.toLowerCase()))) continue;
+          }
+          localEvents.push(ev);
+        }
+        if (localEvents.length === 0) { alert('No events to sync'); return; }
+        const minTime = localEvents.map(e => e.startRfc3339).reduce((a,b)=> a<b?a:b);
+        const maxTime = localEvents.map(e => e.endRfc3339).reduce((a,b)=> a>b?a:b);
+        // load remote events
+        let remoteEvents = [], pageToken = null;
+        do {
+          const res = await listMyEvents(minTime, maxTime, pageToken);
+          if (res.items && res.items.length) remoteEvents = remoteEvents.concat(res.items);
+          pageToken = res.nextPageToken || null;
+        } while (pageToken);
+        const remoteMap = {};
+        remoteEvents.forEach(ev => {
+          const ext = ev.extendedProperties && ev.extendedProperties.private && ev.extendedProperties.private.studentdashboard_id;
+          if (ext) remoteMap[ext] = ev;
+        });
+        const processed = new Set();
+        for (const localEvent of localEvents) {
+          const existing = remoteMap[localEvent.externalId];
+          if (existing) {
+            await updateEventOnGoogle(existing.id, localEvent);
+          } else {
+            await createEventOnGoogle(localEvent);
+          }
+          processed.add(localEvent.externalId);
+          await new Promise(r => setTimeout(r, 120));
+        }
+        // delete remote leftovers
+        for (const ext in remoteMap) {
+          if (!processed.has(ext)) {
+            await deleteEventOnGoogle(remoteMap[ext].id);
+            await new Promise(r => setTimeout(r, 80));
+          }
+        }
+        alert('Sync completed');
+      } catch (err) {
+        console.error('Sync error', err);
+        alert('Sync failed: ' + (err.message || err));
+      }
+    }
+
+    // ---------------- wiring ----------------
+    refreshBtn.addEventListener('click', refreshData);
+    downloadBtn.addEventListener('click', generateMonthlyICS);
+    syncBtn.addEventListener('click', syncAllEventsToGoogle);
+
+    // init google token client once google lib is ready
+    const glInt = setInterval(() => {
+      if (window.google && google.accounts && google.accounts.oauth2) {
+        clearInterval(glInt);
+        initTokenClient();
+      }
+    }, 250);
+
+    // initial load
+    refreshData();
+
+    // expose requestGoogleToken globally for quick manual test (optional)
+    window.requestGoogleToken = requestGoogleToken;
+
+  })();
   </script>
 </body>
 </html>
