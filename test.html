@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Class Schedule</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F0F4F8;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #2D3748;
+        }
+        .class-card {
+            background-color: #4A5568;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-left: 5px solid #4A90E2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #357ABD;
+        }
+        .btn.active {
+            background-color: #2D3748;
+        }
+        .btn.secondary {
+            background-color: #E2E8F0;
+            color: #2D3748;
+        }
+        .btn.secondary:hover {
+            background-color: #CBD5E0;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4A90E2;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* --- CALENDAR STYLES --- */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-day {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: #F7FAFC;
+            color: #A0AEC0;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out;
+        }
+        .calendar-day:hover {
+            transform: scale(1.1);
+        }
+        .calendar-day-header {
+            font-weight: 600;
+            color: #4A5568;
+            background-color: transparent;
+            cursor: default;
+        }
+         .calendar-day-header:hover {
+            transform: none;
+        }
+        .day-free { background-color: #C6F6D5; color: #2F855A; }
+        .day-bunk { background-color: #FEFCBF; color: #B7791F; }
+        .day-busy { background-color: #FED7D7; color: #C53030; }
+        .day-outside-term { background-color: #EDF2F7; color: #A0AEC0; cursor: not-allowed; }
+        .day-outside-term:hover { transform: none; }
+        .day-light-load { background-color: #BEE3F8; color: #2C5282; }
+        .day-medium-load { background-color: #63B3ED; color: #1A365D; }
+        .day-heavy-load { background-color: #3182CE; color: #EBF8FF; }
+
+        .add-to-calendar-btn {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: background-color 0.2s;
+        }
+        .add-to-calendar-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+        }
+        .schedule-cards-container {
+            transition: max-height 0.7s ease-in-out, opacity 0.5s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .schedule-cards-container.is-visible {
+            max-height: 2000px; /* Large enough to not clip content */
+            opacity: 1;
+        }
+        .tab-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            border: 2px solid transparent;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background-color: #EBF8FF;
+            color: #2C5282;
+            border-color: #63B3ED;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen">
+
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="./index.html" class="text-lg md:text-xl font-bold text-gray-800 hover:text-gray-600">Student Dashboard</a>
+            
+            <nav class="hidden md:flex gap-6">
+               <a href="./class_schedule.html" class="text-gray-600 hover:text-blue-600 font-medium">Class Schedule</a>
+                <a href="./mess.html" class="text-gray-600 hover:text-blue-600 font-medium">Mess Schedule</a>
+                <a href="./HolidayPlanner.html" class="text-gray-600 hover:text-blue-600 font-medium">Holiday Planner</a>
+            </nav>
+
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-800 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-gray-200">
+            <a href="./index.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Home</a>
+            <a href="./class_schedule.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Class Schedule</a>
+            <a href="./mess.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Mess Schedule</a>
+            <a href="./HolidayPlanner.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Holiday Planner</a>
+        </div>
+    </header>
+
+    <div class="container mx-auto p-4 md:p-6 max-w-4xl flex-grow">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#2D3748]">Class Schedule 📚</h1>
+            <p id="connectionStatus" class="text-gray-500 mt-2">Connecting...</p>
+        </header>
+
+        <main id="scheduleContent" class="flex flex-col gap-6">
+            <div class="card">
+                <h2 class="card-title text-xl mb-4">✅ My Subjects</h2>
+                <p id="welcome-prompt" class="text-gray-600 mb-4">Start by searching for your subjects to build your schedule.</p>
+                <div class="relative mb-4">
+                    <input type="text" id="subjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add a subject...">
+                    <div id="searchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
+                </div>
+                <div id="selectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
+            </div>
+
+            <div id="schedule-cards-container" class="schedule-cards-container flex flex-col gap-6">
+                 <div class="card">
+                    <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden text-lg font-bold py-3 shadow-md hover:shadow-lg transition-all duration-200">
+                        Download Outlook/Google Calendar File
+                    </button>
+                    <p id="download-explainer" class="text-sm text-gray-600 mt-3 text-center hidden">
+                        Download the custom calendar <code>.ics</code> file for your subjects. This file can be imported directly into Google Calendar, Outlook, or Apple Calendar to see your entire term schedule.
+                    </p>
+                </div>
+
+                <section class="grid md:grid-cols-2 gap-6">
+                    <div class="card">
+                        <h2 class="card-title text-xl mb-4">📅 Today <span class="text-gray-400 font-normal text-sm" id="todayDate"></span></h2>
+                        <div id="todayClasses"><div class="loader"></div></div>
+                    </div>
+                    <div class="card">
+                        <h2 class="card-title text-xl mb-4">⏭️ Tomorrow <span class="text-gray-400 font-normal text-sm" id="tomorrowDate"></span></h2>
+                        <div id="tomorrowClasses"><div class="loader"></div></div>
+                    </div>
+                </section>
+                <div class="card">
+                    <h2 class="card-title text-xl mb-4">➡️ Upcoming Schedule</h2>
+                    <div class="flex gap-2 mb-4">
+                        <button id="dayWiseBtn" class="btn active flex-grow">By Day</button>
+                        <button id="subjectWiseBtn" class="btn secondary flex-grow">By Subject</button>
+                    </div>
+                    <div id="day-wise-options" class="flex justify-center gap-2 mb-4">
+                        <button class="tab-btn active" data-range="7">Next 7 Days</button>
+                        <button class="tab-btn" data-range="30">Next 30 Days</button>
+                        <button class="tab-btn" data-range="term">Rest of Term</button>
+                    </div>
+                    <div id="upcomingClassesContainer"><div class="loader"></div></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="flex border-b border-gray-200 mb-4">
+                    <button id="my-calendar-tab-btn" class="tab-btn active" data-tab="my-calendar">My Calendar</button>
+                    <button id="search-date-tab-btn" class="tab-btn" data-tab="search-date">Search by Date</button>
+                    <button id="friend-match-tab-btn" class="tab-btn" data-tab="friend-match">Friend Match</button>
+                </div>
+
+                <div id="my-calendar-tab" class="tab-content">
+                    <h2 class="card-title text-xl mb-4">🗓️ My Term Calendar</h2>
+                    <p class="text-sm text-gray-500 mb-4">Generate a color-coded calendar for your subjects during the term (10 Sep - 6 Dec).</p>
+                    <button id="showMyCalendarBtn" class="btn w-full">Show My Calendar</button>
+                    <div id="myCalendarResults" class="mt-4"></div>
+                </div>
+
+                <div id="search-date-tab" class="tab-content hidden">
+                    <h2 class="card-title text-xl mb-4">🔍 Search by Date</h2>
+                    <div class="flex flex-col md:flex-row gap-4">
+                        <input type="date" id="datePicker" class="w-full p-3 border border-gray-300 rounded-lg">
+                        <button id="showScheduleBtn" class="btn w-full md:w-auto">Show Schedule</button>
+                    </div>
+                    <div id="selectedDateClasses" class="mt-4"></div>
+                </div>
+
+                <div id="friend-match-tab" class="tab-content hidden">
+                    <h2 class="card-title text-xl mb-4">🤝 Match Free Time with a Friend</h2>
+                    <p class="text-sm text-gray-500 mb-4">Enter your friend's subjects to generate a visual calendar of your common free time during the term (10 Sep - 6 Dec).</p>
+                    <h3 class="font-semibold text-lg mb-2 text-gray-700">🧑‍🤝‍🧑 Friend's Subjects</h3>
+                    <div class="relative mb-4">
+                        <input type="text" id="friendSubjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add friend's subject...">
+                        <div id="friendSearchResults" class="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
+                    </div>
+                    <div id="friendSelectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
+                    <button id="compareSchedulesBtn" class="btn w-full !bg-purple-500 hover:!bg-purple-600">Generate Visual Calendar</button>
+                    <div id="comparisonResults" class="mt-4"></div>
+                </div>
+            </div>
+             <div class="text-center">
+                <a href="./index.html" class="inline-block bg-gray-200 text-gray-700 py-2 px-6 rounded-lg hover:bg-gray-300 transition-colors">🏠 Back to Home</a>
+            </div>
+        </main>
+        <footer class="text-center p-6 mt-4">
+            <p class="text-sm text-gray-600">Made by Akshay Sharma</p>
+            <div class="flex justify-center items-center gap-4 mt-2">
+                <a href="https://www.linkedin.com/in/akshay-sharma-2434141b6/" target="_blank" class="text-gray-500 hover:text-blue-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                </a>
+                <a href="https://www.instagram.com/akshay_sharmaa__?igsh=a2U2b3hyZmowZmkx" target="_blank" class="text-gray-500 hover:text-pink-500 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.85s-.012 3.584-.07 4.85c-.148 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07s-3.584-.012-4.85-.07c-3.252-.148-4.771-1.691-4.919-4.919-.058-1.265-.069-1.645-.069-4.85s.012-3.584.07-4.85c.148-3.225 1.664-4.771 4.919-4.919 1.266-.057 1.644-.069 4.85-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948s.014 3.667.072 4.947c.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072s3.667-.014 4.947-.072c4.358-.2 6.78-2.618 6.98-6.98.059-1.281.073-1.689.073-4.948s-.014-3.667-.072-4.947c-.2-4.358-2.618-6.78-6.98-6.98-1.281-.058-1.689-.072-4.948-.072zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.162 6.162 6.162 6.162-2.759 6.162-6.162-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4s1.791-4 4-4 4 1.79 4 4-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44 1.441-.645 1.441-1.44-.645-1.44-1.441-1.44z"/></svg>
+                </a>
+                <a href="https://twitter.com/AkshaySharma__" target="_blank" class="text-gray-500 hover:text-black transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                </a>
+            </div>
+        </footer>
+        <button class="refresh-btn fixed bottom-5 right-5 bg-blue-500 text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-2xl" id="refreshBtn" title="Refresh Data">🔄</button>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+            
+            let allSheetData = [], enrolledClasses = [], friendEnrolledClasses = [], activeUpcomingView = 'dayWise', activeDayRange = 7, allClasses = [], venueMap = {}, professorMap = {};
+
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.textContent = message;
+                toast.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+            function parseDate(dateString) {
+                if (!dateString) return null;
+                const parts = dateString.trim().split('/');
+                if (parts.length === 3) {
+                    const [month, day, year] = parts.map(p => parseInt(p, 10));
+                    if (!isNaN(month) && !isNaN(day) && !isNaN(year)) return new Date(year < 100 ? 2000 + year : year, month - 1, day);
+                }
+                return null;
+            }
+            function isSameDay(d1, d2) { return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate(); }
+            function parseClassInfo(s) { return { class: s ? s.trim() : 'Unnamed Class' }; }
+            
+            function parseTime(timeStr) {
+                if (!timeStr) return { hours: NaN, minutes: NaN };
+                const parts = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+                if (!parts) return { hours: NaN, minutes: NaN };
+                let hours = parseInt(parts[1], 10), minutes = parseInt(parts[2], 10), modifier = parts[3];
+                if (isNaN(hours) || isNaN(minutes)) return { hours: NaN, minutes: NaN };
+                if (modifier) { if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12; if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0; }
+                return { hours, minutes };
+            }
+
+            function createGoogleCalendarLink(cls) {
+                const classDate = parseDate(cls.date);
+                if (!classDate) return '#';
+                const timeParts = (cls.time || '').split('-').map(t => t.trim());
+                if (timeParts.length < 2) return '#';
+                const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
+                const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
+                if (isNaN(startHours) || isNaN(endHours)) return '#';
+                const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHours, startMinutes);
+                const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHours, endMinutes);
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return '#';
+                const toUTCFormat = (date) => date.toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z';
+                const baseURL = 'https://www.google.com/calendar/render?action=TEMPLATE';
+                const params = new URLSearchParams({
+                    text: cls.class,
+                    dates: `${toUTCFormat(startDate)}/${toUTCFormat(endDate)}`,
+                    details: `Professor: ${cls.professor || 'N/A'}`,
+                    location: cls.location || 'Venue not listed'
+                });
+                return `${baseURL}&${params.toString()}`;
+            }
+            
+            function generateMonthlyICS() {
+                if (enrolledClasses.length === 0) {
+                    showToast('Please select your subjects first to download a calendar.', 'error');
+                    return;
+                }
+
+                // New function to format dates for IST without converting to UTC
+                const toISTFormat = (date) => {
+                    if (!date || isNaN(date.getTime())) return '';
+                    const pad = (num) => (num < 10 ? '0' : '') + num;
+                    // Formats to YYYYMMDDTHHMMSS
+                    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+                };
+
+                let icsString = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//StudentDashboard//AkshaySharma//EN',
+                    'CALSCALE:GREGORIAN',
+                    // Define the Indian Standard Time (IST) timezone
+                    'BEGIN:VTIMEZONE',
+                    'TZID:Asia/Kolkata',
+                    'BEGIN:STANDARD',
+                    'DTSTART:19700101T000000',
+                    'TZOFFSETFROM:+0530',
+                    'TZOFFSETTO:+0530',
+                    'TZNAME:IST',
+                    'END:STANDARD',
+                    'END:VTIMEZONE',
+                ].join('\r\n') + '\r\n';
+
+                const termStartDate = new Date(2025, 8, 10); // Sep 10
+                const termEndDate = new Date(2025, 11, 6); // Dec 6
+
+                let eventCount = 0;
+                allSheetData.forEach((row, index) => {
+                    if (index === 0) return; // Skip header row
+
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[1] || !row[2]) return;
+                    
+                    if (classDate < termStartDate || classDate > termEndDate) return;
+
+                    const className = parseClassInfo(row[2]).class;
+                    const classNameLower = className.toLowerCase();
+
+                    if (!enrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                        return;
+                    }
+
+                    const timeParts = row[1].split('-').map(t => t.trim());
+                    if (timeParts.length < 2) return;
+
+                    const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
+                    const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
+
+                    if (isNaN(startHours) || isNaN(endHours)) return;
+
+                    const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHours, startMinutes);
+                    const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHours, endMinutes);
+
+                    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
+                    
+                    eventCount++;
+                    
+                    const dateToYMD = (d) => d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+                    const uid = `${dateToYMD(classDate)}-${className.replace(/\s+/g, '')}@studentdashboard.com`;
+
+
+                    const event = [
+                        'BEGIN:VEVENT',
+                        // DTSTAMP should be in UTC as per the iCalendar standard
+                        `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z'}`,
+                        `UID:${uid}`,
+                        // Specify the timezone for start and end times
+                        `DTSTART;TZID=Asia/Kolkata:${toISTFormat(startDate)}`,
+                        `DTEND;TZID=Asia/Kolkata:${toISTFormat(endDate)}`,
+                        `SUMMARY:${className}`,
+                        'END:VEVENT'
+                    ].join('\r\n');
+
+                    icsString += event + '\r\n';
+                });
+
+                icsString += 'END:VCALENDAR';
+
+                if (eventCount === 0) {
+                    showToast('No classes found for your selected subjects in the current term.', 'error');
+                    return;
+                }
+
+                const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'class_schedule.ics';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                showToast(`Successfully generated calendar with ${eventCount} classes!`, 'success');
+            }
+
+            function saveUserPreferences(classesToSave) { try { localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave)); } catch (e) { console.error("LS Save Error:", e); } }
+            function fetchUserPreferences() { try { const d = localStorage.getItem('enrolledClasses'); return d ? JSON.parse(d) : null; } catch (e) { console.error("LS Fetch Error:", e); return null; } }
+
+            function renderClasses(classes, containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return;
+                if (classes.length === 0) { container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled!</p>'; return; }
+                container.innerHTML = classes.map(cls => `<div class="class-card"><div><p class="font-bold text-lg">${cls.class}</p><p class="opacity-90">🕒 ${cls.time || 'N/A'}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn" title="Add to Google Calendar">🗓️</a></div>`).join('');
+            }
+            
+            function renderUpcomingView(viewType, isRefresh = false) {
+                if (!isRefresh) activeUpcomingView = viewType;
+                const dayWiseBtn = document.getElementById('dayWiseBtn'), subjectWiseBtn = document.getElementById('subjectWiseBtn'), dayWiseOptions = document.getElementById('day-wise-options');
+                dayWiseBtn.classList.toggle('active', activeUpcomingView === 'dayWise');
+                dayWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'dayWise');
+                subjectWiseBtn.classList.toggle('active', activeUpcomingView === 'subjectWise');
+                subjectWiseBtn.classList.toggle('secondary', activeUpcomingView !== 'subjectWise');
+                dayWiseOptions.classList.toggle('hidden', activeUpcomingView !== 'dayWise');
+                if (activeUpcomingView === 'dayWise') renderUpcomingDayWise(document.getElementById('upcomingClassesContainer'));
+                else renderUpcomingSubjectWise(document.getElementById('upcomingClassesContainer'));
+            }
+
+            function renderUpcomingDayWise(container) {
+                const today = new Date();
+                let content = '', daysToScan;
+                if (activeDayRange === 'term') {
+                    const termEndDate = new Date(2025, 11, 6); // Dec 6, 2025
+                    const diffTime = termEndDate - today;
+                    daysToScan = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+                } else { daysToScan = activeDayRange; }
+
+                for (let i = 0; i < daysToScan; i++) {
+                    const targetDate = new Date();
+                    targetDate.setDate(today.getDate() + i);
+                    const classes = filterAndSortClasses(allSheetData, targetDate);
+                    if (classes.length > 0) {
+                        content += `<div class="mb-4">
+                            <h3 class="font-bold border-b pb-1 mb-2">${targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
+                            ${classes.map(cls => `<div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400"><div><p class="font-bold">${cls.class}</p><p class="text-sm">🕒 ${cls.time || 'N/A'}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn !bg-gray-200" title="Add to Google Calendar">🗓️</a></div>`).join('')}
+                            </div>`;
+                    }
+                }
+                container.innerHTML = content || `<p class="text-gray-500 text-center py-4">🎉 No classes in the selected period!</p>`;
+            }
+
+            function renderUpcomingSubjectWise(container) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const upcomingBySubject = enrolledClasses.map(subject => {
+                    const nextTwo = allSheetData.filter(row => {
+                        const classDate = parseDate(row[0]);
+                        if (!classDate || !row[2]) return false;
+                        const classNameFromSheet = parseClassInfo(row[2]).class;
+                        return classNameFromSheet.toLowerCase().includes(subject.toLowerCase()) && classDate >= today;
+                    }).sort((a, b) => {
+                        const dateA = parseDate(a[0]), dateB = parseDate(b[0]);
+                        if (dateA - dateB !== 0) return dateA - dateB;
+                        const timeA = parseTime((a[1] || '').split('-')[0].trim()), timeB = parseTime((b[1] || '').split('-')[0].trim());
+                        if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
+                        if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
+                        return timeA.minutes - timeB.minutes;
+                    }).slice(0, 2);
+                    return { subject, nextTwo };
+                });
+                container.innerHTML = `<table class="w-full text-left">
+                    <thead><tr class="border-b"><th class="p-2">Subject</th><th class="p-2">Next Class</th><th class="p-2">2nd Next</th></tr></thead>
+                    <tbody>${upcomingBySubject.map(({ subject, nextTwo }) => `<tr class="border-b">
+                            <td class="p-2 font-semibold">${subject}</td>
+                            <td class="p-2 text-sm">${nextTwo[0] ? `${nextTwo[0][0]} at ${nextTwo[0][1]}` : 'N/A'}</td>
+                            <td class="p-2 text-sm">${nextTwo[1] ? `${nextTwo[1][0]} at ${nextTwo[1][1]}` : 'N/A'}</td>
+                        </tr>`).join('')}</tbody>
+                </table>`;
+            }
+            function filterAndSortClasses(data, targetDate) {
+                return data.filter(row => {
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[2]) return false;
+                    const className = parseClassInfo(row[2]).class.toLowerCase();
+                    return isSameDay(classDate, targetDate) && enrolledClasses.some(s => className.includes(s.toLowerCase()));
+                }).map(row => ({ date: row[0], time: row[1], class: parseClassInfo(row[2]).class })).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+            }
+
+            function generateMyCalendar() {
+                 const resultsContainer = document.getElementById('myCalendarResults');
+                if (enrolledClasses.length === 0) { showToast('Please select your subjects first.', 'error'); return; }
+                resultsContainer.innerHTML = '<div class="loader"></div>';
+                const termStartDate = new Date(2025, 8, 10), termEndDate = new Date(2025, 11, 6);
+                const myDailySchedule = {};
+                allSheetData.forEach(row => {
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+                    const classNameLower = parseClassInfo(row[2]).class.toLowerCase();
+                    if (enrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                        const dateKey = classDate.toISOString().split('T')[0];
+                        if(!myDailySchedule[dateKey]) myDailySchedule[dateKey] = [];
+                        myDailySchedule[dateKey].push(parseClassInfo(row[2]).class);
+                    }
+                });
+                renderMyCalendar(myDailySchedule, termStartDate, termEndDate);
+            }
+            function renderMyCalendar(myDailySchedule, termStartDate, termEndDate) {
+                const resultsContainer = document.getElementById('myCalendarResults');
+                let html = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs"><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Holiday</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-200 mr-2"></span> 1 Class</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-400 mr-2"></span> 2 Classes</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-600 mr-2"></span> 3+ Classes</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Outside Term</div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
+                for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
+                    const date = new Date(termStartDate.getFullYear(), month, 1);
+                    html += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })} 2025</h4><div class="calendar-grid">`;
+                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => html += `<div class="calendar-day calendar-day-header">${day}</div>`);
+                    for (let i = 0; i < date.getDay(); i++) html += `<div></div>`;
+                    while (date.getMonth() === month) {
+                        const dateKey = date.toISOString().split('T')[0];
+                        const classes = myDailySchedule[dateKey] || [];
+                        const classCount = classes.length;
+                        let dayClass = 'calendar-day', title = 'No classes';
+                        if (date < termStartDate || date > termEndDate) { dayClass += ' day-outside-term'; title = 'Outside Term'; }
+                        else {
+                            if (classCount === 0) { dayClass += ' day-free'; }
+                            else { title = `Classes: ${classes.join(', ')}`;
+                                if (classCount === 1) dayClass += ' day-light-load';
+                                else if (classCount === 2) dayClass += ' day-medium-load';
+                                else dayClass += ' day-heavy-load';
+                            }
+                        }
+                        html += `<div class="${dayClass}" data-date="${dateKey}" title="${title}">${date.getDate()}</div>`;
+                        date.setDate(date.getDate() + 1);
+                    }
+                    html += `</div></div>`;
+                }
+                resultsContainer.innerHTML = html + `</div>`;
+            }
+            function compareSchedules() {
+                 const resultsContainer = document.getElementById('comparisonResults');
+                 if (enrolledClasses.length === 0 || friendEnrolledClasses.length === 0) { showToast('Select subjects for both you and a friend.', 'error'); return; }
+                 resultsContainer.innerHTML = '<div class="loader"></div>';
+                 const termStartDate = new Date(2025, 8, 10), termEndDate = new Date(2025, 11, 6);
+                 const dailyStatuses = {};
+                 allSheetData.forEach(row => {
+                     const classDate = parseDate(row[0]);
+                     if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+                     const dateKey = classDate.toISOString().split('T')[0];
+                     if (!dailyStatuses[dateKey]) dailyStatuses[dateKey] = { userClasses: 0, friendClasses: 0, details: [] };
+                     const className = parseClassInfo(row[2]).class;
+                     const classNameLower = className.toLowerCase();
+                     if (enrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                         dailyStatuses[dateKey].userClasses++;
+                         dailyStatuses[dateKey].details.push({ who: 'You', class: className });
+                     }
+                     if (friendEnrolledClasses.some(s => classNameLower.includes(s.toLowerCase()))) {
+                         dailyStatuses[dateKey].friendClasses++;
+                         dailyStatuses[dateKey].details.push({ who: 'Friend', class: className });
+                     }
+                 });
+                 Object.keys(dailyStatuses).forEach(dateKey => {
+                     const day = dailyStatuses[dateKey];
+                     const total = day.userClasses + day.friendClasses;
+                     if (total === 0) day.type = 'free';
+                     else if (total === 1) { day.type = 'bunk'; day.who = day.details[0].who; day.class = day.details[0].class; }
+                     else day.type = 'busy';
+                 });
+                 renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate);
+            }
+            function renderComparisonCalendar(dailyStatuses, termStartDate, termEndDate) {
+                const resultsContainer = document.getElementById('comparisonResults');
+                let calendarHtml = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs"><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Free</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 mr-2"></span> Bunkable</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Outside Term</div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
+                for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
+                    const date = new Date(termStartDate.getFullYear(), month, 1);
+                    calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })} 2025</h4><div class="calendar-grid">`;
+                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day calendar-day-header">${day}</div>`);
+                    for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
+                    while (date.getMonth() === month) {
+                        const dateKey = date.toISOString().split('T')[0];
+                        const status = dailyStatuses[dateKey] || { type: 'outside' };
+                        let dayClass = 'calendar-day', title = '';
+                        if (date < termStartDate || date > termEndDate) { dayClass += ' day-outside-term'; title = 'Outside Term';
+                        } else {
+                            switch (status.type) {
+                                case 'free': dayClass += ' day-free'; title = 'Completely Free!'; break;
+                                case 'bunk': dayClass += ' day-bunk'; title = `Bunkable! ${status.who} must miss: ${status.class}`; break;
+                                case 'busy': dayClass += ' day-busy'; title = 'Busy Day'; break;
+                                default: dayClass += ' day-free'; title = 'Completely Free!';
+                            }
+                        }
+                        calendarHtml += `<div class="${dayClass}" data-date="${dateKey}" title="${title}">${date.getDate()}</div>`;
+                        date.setDate(date.getDate() + 1);
+                    }
+                    calendarHtml += `</div></div>`;
+                }
+                let bunkListHtml = '';
+                const bunkDays = Object.entries(dailyStatuses).filter(([_, s]) => s.type === 'bunk').map(([d, s]) => ({ date: new Date(d + 'T00:00:00'), ...s })).sort((a, b) => a.date - b.date);
+                if (bunkDays.length > 0) {
+                    bunkListHtml += `<h3 class="font-semibold text-lg mt-6 mb-2 text-gray-800">🤔 Bunking Opportunities Details:</h3>`;
+                    const bunksByMonth = {};
+                    bunkDays.forEach(day => {
+                        const monthName = day.date.toLocaleString('default', { month: 'long' });
+                        if (!bunksByMonth[monthName]) bunksByMonth[monthName] = [];
+                        bunksByMonth[monthName].push(day);
+                    });
+                    const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
+                    for (const monthName in bunksByMonth) {
+                        bunkListHtml += `<h4 class="font-semibold text-md mt-4 mb-1 text-gray-700">${monthName}</h4>`;
+                        bunkListHtml += `<ul class="space-y-2 list-disc list-inside">`;
+                        bunksByMonth[monthName].forEach(day => {
+                            bunkListHtml += `<li class="text-sm text-yellow-800"><span class="font-semibold">${formatDate(day.date)}:</span> ${day.who} must miss class: <span class="font-semibold">${day.class}</span></li>`;
+                        });
+                        bunkListHtml += `</ul>`;
+                    }
+                }
+                resultsContainer.innerHTML = calendarHtml + bunkListHtml;
+            }
+            
+            async function refreshData() {
+                const refreshBtn = document.getElementById('refreshBtn');
+                refreshBtn.classList.add('animate-spin');
+                try {
+                    const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                    const data = await response.json();
+                    allSheetData = data.values || [];
+                    const uniqueMasterClasses = new Set(allSheetData.slice(1).map(row => row[9] ? row[9].trim() : null).filter(Boolean));
+                    allClasses = [...uniqueMasterClasses].sort();
+                    const lastUpdatedDate = allSheetData[0] && allSheetData[0][6] ? `as updated on ${allSheetData[0][6]}` : 'Last updated: Not available';
+                    document.getElementById('connectionStatus').textContent = lastUpdatedDate;
+                    document.getElementById('connectionStatus').className = 'text-green-500 mt-2';
+                    const today = new Date(), tomorrow = new Date();
+                    tomorrow.setDate(today.getDate() + 1);
+                    renderClasses(filterAndSortClasses(allSheetData, today), 'todayClasses');
+                    renderClasses(filterAndSortClasses(allSheetData, tomorrow), 'tomorrowClasses');
+                    renderUpcomingView(activeUpcomingView, true);
+                } catch (error) {
+                    console.error("Fetch data error:", error);
+                    document.getElementById('connectionStatus').textContent = '⚠️ Connection Failed';
+                    document.getElementById('connectionStatus').className = 'text-red-500 mt-2';
+                } finally {
+                    refreshBtn.classList.remove('animate-spin');
+                }
+            }
+            function fetchClassesForDate() {
+                const dateStr = document.getElementById('datePicker').value;
+                if (!dateStr) { showToast('Please select a date.', 'error'); return; }
+                const selectedDate = new Date(dateStr + "T00:00:00");
+                renderClasses(filterAndSortClasses(allSheetData, selectedDate), 'selectedDateClasses');
+            }
+
+            function handleUserSubjectsChange() {
+                const container = document.getElementById('schedule-cards-container'), welcome = document.getElementById('welcome-prompt'), downloadBtn = document.getElementById('downloadMonthBtn'), explainer = document.getElementById('download-explainer');
+                if (enrolledClasses.length > 0) {
+                    container.classList.add('is-visible');
+                    welcome.style.display = 'none';
+                    downloadBtn.style.display = 'block';
+                    explainer.style.display = 'block';
+                } else {
+                    container.classList.remove('is-visible');
+                    welcome.style.display = 'block';
+                    downloadBtn.style.display = 'none';
+                    explainer.style.display = 'none';
+                }
+                saveUserPreferences(enrolledClasses);
+                refreshData();
+            }
+
+            function setupSubjectSearch(inputId, resultsId, tagsId, targetArray, isUser) {
+                const searchInput = document.getElementById(inputId), resultsContainer = document.getElementById(resultsId), tagsContainer = document.getElementById(tagsId);
+                const renderTags = () => { tagsContainer.innerHTML = targetArray.map(subject => `<div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm"><span>${subject}</span><button class="font-bold remove-tag-btn" data-subject="${subject}" data-target="${tagsId}">x</button></div>`).join(''); };
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.toLowerCase();
+                    if (!query) { resultsContainer.classList.add('hidden'); return; }
+                    const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !targetArray.includes(c));
+                    resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
+                    resultsContainer.classList.toggle('hidden', filtered.length === 0);
+                });
+                resultsContainer.addEventListener('click', e => {
+                    if (e.target.dataset.subject) {
+                        targetArray.push(e.target.dataset.subject);
+                        targetArray.sort();
+                        renderTags();
+                        searchInput.value = '';
+                        resultsContainer.classList.add('hidden');
+                        if (isUser) handleUserSubjectsChange();
+                    }
+                });
+                tagsContainer.addEventListener('click', event => {
+                    const button = event.target.closest('.remove-tag-btn');
+                    if (button && button.dataset.target === tagsId) {
+                        const index = targetArray.indexOf(button.dataset.subject);
+                        if (index > -1) targetArray.splice(index, 1);
+                        renderTags();
+                        if (isUser) handleUserSubjectsChange();
+                    }
+                });
+                renderTags();
+                return renderTags;
+            }
+
+            function setupTabs() {
+                const tabButtons = document.querySelectorAll('.tab-btn');
+                const tabContents = document.querySelectorAll('.tab-content');
+                tabButtons.forEach(button => {
+                    button.addEventListener('click', () => {
+                        tabButtons.forEach(btn => btn.classList.remove('active'));
+                        button.classList.add('active');
+                        const tabId = button.dataset.tab;
+                        tabContents.forEach(content => {
+                            content.classList.toggle('hidden', content.id !== `${tabId}-tab`);
+                        });
+                    });
+                });
+            }
+            function setupCalendarInteraction() {
+                ['myCalendarResults', 'comparisonResults'].forEach(id => {
+                    document.getElementById(id).addEventListener('click', e => {
+                        const dayEl = e.target.closest('.calendar-day');
+                        if (dayEl && dayEl.dataset.date) {
+                            document.getElementById('search-date-tab-btn').click();
+                            document.getElementById('datePicker').value = dayEl.dataset.date;
+                            fetchClassesForDate();
+                        }
+                    });
+                });
+            }
+            function setupUpcomingScheduleControls() {
+                const dayWiseOptionsContainer = document.getElementById('day-wise-options');
+                dayWiseOptionsContainer.addEventListener('click', (e) => {
+                    const button = e.target.closest('.tab-btn');
+                    if (!button) return;
+                    dayWiseOptionsContainer.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    const range = button.dataset.range;
+                    activeDayRange = (range === 'term') ? 'term' : parseInt(range, 10);
+                    renderUpcomingDayWise(document.getElementById('upcomingClassesContainer'));
+                });
+            }
+
+            function initialize() {
+                const today = new Date(), tomorrow = new Date();
+                tomorrow.setDate(today.getDate() + 1);
+                document.getElementById('todayDate').textContent = `(${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                document.getElementById('tomorrowDate').textContent = `(${tomorrow.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+                document.getElementById('datePicker').valueAsDate = today;
+                
+                const savedClasses = fetchUserPreferences();
+                if (savedClasses) enrolledClasses = savedClasses;
+
+                setupTabs();
+                setupCalendarInteraction();
+                setupUpcomingScheduleControls();
+                const renderUserTags = setupSubjectSearch('subjectSearchInput', 'searchResults', 'selectedTagsContainer', enrolledClasses, true);
+                setupSubjectSearch('friendSubjectSearchInput', 'friendSearchResults', 'friendSelectedTagsContainer', friendEnrolledClasses, false);
+
+                document.addEventListener('click', e => {
+                    if (!e.target.closest('.relative')) {
+                        document.getElementById('searchResults').classList.add('hidden');
+                        document.getElementById('friendSearchResults').classList.add('hidden');
+                    }
+                });
+                
+                document.getElementById('downloadMonthBtn').addEventListener('click', generateMonthlyICS);
+                document.getElementById('refreshBtn').addEventListener('click', refreshData);
+                document.getElementById('dayWiseBtn').addEventListener('click', () => renderUpcomingView('dayWise', false));
+                document.getElementById('subjectWiseBtn').addEventListener('click', () => renderUpcomingView('subjectWise', false));
+                document.getElementById('showScheduleBtn').addEventListener('click', fetchClassesForDate);
+                document.getElementById('showMyCalendarBtn').addEventListener('click', generateMyCalendar);
+                document.getElementById('compareSchedulesBtn').addEventListener('click', compareSchedules);
+
+                refreshData().then(() => {
+                    renderUserTags();
+                    handleUserSubjectsChange();
+                });
+            }
+            
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+
+            mobileMenuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+            
+            initialize();
+        });
+    </script>
+</body>
+</html>
