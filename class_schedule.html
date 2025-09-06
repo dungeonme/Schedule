@@ -649,7 +649,7 @@
                     if (!response.ok) throw new Error(`API Error: ${response.status}`);
                     const data = await response.json();
                     allSheetData = data.values || [];
-                    const uniqueMasterClasses = new Set(allSheetData.slice(1).map(row => row[9] ? row[9].trim() : null).filter(Boolean));
+                    const uniqueMasterClasses = new Set(allSheetData.slice(1).map(row => row[2] ? row[2].trim() : null).filter(Boolean));
                     allClasses = [...uniqueMasterClasses].sort();
                     const lastUpdatedDate = allSheetData[0] && allSheetData[0][6] ? `as updated on ${allSheetData[0][6]}` : 'Last updated: Not available';
                     document.getElementById('connectionStatus').textContent = lastUpdatedDate;
