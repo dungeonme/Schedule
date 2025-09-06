@@ -198,14 +198,6 @@
             </div>
 
             <div id="schedule-cards-container" class="schedule-cards-container flex flex-col gap-6">
-                 <div class="card">
-                    <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden text-lg font-bold py-3 shadow-md hover:shadow-lg transition-all duration-200">
-                        Download Outlook/Google Calendar File
-                    </button>
-                    <p id="download-explainer" class="text-sm text-gray-600 mt-3 text-center hidden">
-                        Download the custom calendar <code>.ics</code> file for your subjects. This file can be imported directly into Google Calendar, Outlook, or Apple Calendar to see your entire term schedule.
-                    </p>
-                </div>
 
                 <section class="grid md:grid-cols-2 gap-6">
                     <div class="card">
@@ -217,6 +209,7 @@
                         <div id="tomorrowClasses"><div class="loader"></div></div>
                     </div>
                 </section>
+                
                 <div class="card">
                     <h2 class="card-title text-xl mb-4">➡️ Upcoming Schedule</h2>
                     <div class="flex gap-2 mb-4">
@@ -229,6 +222,15 @@
                         <button class="tab-btn" data-range="term">Rest of Term</button>
                     </div>
                     <div id="upcomingClassesContainer"><div class="loader"></div></div>
+                </div>
+
+                 <div class="card">
+                    <button id="downloadMonthBtn" class="btn w-full !bg-green-500 hover:!bg-green-600 leading-tight hidden text-lg font-bold py-3 shadow-md hover:shadow-lg transition-all duration-200">
+                        Download Outlook/Google Calendar File
+                    </button>
+                    <p id="download-explainer" class="text-sm text-gray-600 mt-3 text-center hidden">
+                        Download the custom calendar <code>.ics</code> file for your subjects. This file can be imported directly into Google Calendar, Outlook, or Apple Calendar to see your entire term schedule. Please verify once that accurate number of classes are being added
+                    </p>
                 </div>
             </div>
 
