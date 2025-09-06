@@ -395,7 +395,13 @@
                     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
                     
                     eventCount++;
-                    const uid = `${toUTCFormat(startDate)}-${className.replace(/\s+/g, '')}@studentdashboard.com`;
+                    
+                    // *** FIX IMPLEMENTED HERE ***
+                    // The UID is now based on the DATE and CLASS NAME only, not the time.
+                    // This makes the ID stable even if the class is rescheduled.
+                    const dateToYMD = (d) => d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+                    const uid = `${dateToYMD(classDate)}-${className.replace(/\s+/g, '')}@studentdashboard.com`;
+
 
                     const event = [
                         'BEGIN:VEVENT',
