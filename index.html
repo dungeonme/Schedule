@@ -10,7 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-DRYFN2F2WR"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -59,41 +58,44 @@
         <div class="container mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-lg md:text-xl font-bold text-gray-800">Student Dashboard</h1>
             
-            <!-- Desktop Menu -->
             <nav class="hidden md:flex gap-6">
                 <a href="./class_schedule.html" class="text-gray-600 hover:text-blue-600 font-medium">Class Schedule</a>
                 <a href="./mess.html" class="text-gray-600 hover:text-orange-600 font-medium">Mess Schedule</a>
+                <a href="https://dungeonme.github.io/Schedule/HolidayPlanner.html" class="text-gray-600 hover:text-green-600 font-medium">Holiday Planner</a>
             </nav>
 
-            <!-- Mobile Menu Button -->
             <div class="md:hidden">
                 <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-800 focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                 </button>
             </div>
         </div>
-        <!-- Mobile Menu -->
         <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-gray-200">
             <a href="./class_schedule.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Class Schedule</a>
             <a href="./mess.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Mess Schedule</a>
+            <a href="https://dungeonme.github.io/Schedule/HolidayPlanner.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Holiday Planner</a>
         </div>
     </header>
 
     <div class="flex items-center justify-center flex-grow p-4" style="min-height: calc(100vh - 120px);">
-        <main class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl">
+        <main class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
             
-            <!-- Link to Mess Schedule -->
             <a href="./mess.html" class="app-card">
                 <div class="text-7xl mb-5">🍛</div>
                 <h2 class="app-title text-3xl mb-2">Mess Schedule</h2>
                 <p class="app-description">Check the weekly mess menu, see what's currently being served, and find out what's next.</p>
             </a>
 
-            <!-- Link to Class Schedule -->
             <a href="./class_schedule.html" class="app-card">
                 <div class="text-7xl mb-5">🗓️</div>
                 <h2 class="app-title text-3xl mb-2">Class Schedule</h2>
                 <p class="app-description">View your weekly class timetable, check room numbers, and never miss a lecture.</p>
+            </a>
+
+            <a href="https://dungeonme.github.io/Schedule/HolidayPlanner.html" class="app-card">
+                <div class="text-7xl mb-5">✈️</div>
+                <h2 class="app-title text-3xl mb-2">Holiday Planner</h2>
+                <p class="app-description">Plan your semester breaks and upcoming holidays effectively.</p>
             </a>
 
         </main>
@@ -126,4 +128,3 @@
     </script>
 </body>
 </html>
-
