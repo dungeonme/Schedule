@@ -667,8 +667,8 @@
                 for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
                     const date = new Date(termStartDate.getFullYear(), month, 1);
                     calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })}</h4><div class="calendar-grid">`;
-                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => html += `<div class="calendar-day calendar-day-header">${day}</div>`);
-                    for (let i = 0; i < date.getDay(); i++) html += `<div></div>`;
+                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day calendar-day-header">${day}</div>`);
+                    for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
                     while (date.getMonth() === month) {
                         const dateKey = date.toISOString().split('T')[0];
                         const status = dailyStatuses[dateKey] || { type: 'outside' };
@@ -699,12 +699,14 @@
                     });
                     const formatDate = (date) => date.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric' });
                     for (const monthName in bunksByMonth) {
-                        bunkListHtml += `<h4 class="font-semibold text-md mt-4 mb-1 text-gray-700">${monthName}</h4>`;
+                        bunkListHtml += `<div class="mt-4">`; // Wrap month heading and list in a new div
+                        bunkListHtml += `<h4 class="font-semibold text-md mb-2 text-gray-700">${monthName}</h4>`;
                         bunkListHtml += `<ul class="space-y-2 list-disc list-inside">`;
                         bunksByMonth[monthName].forEach(day => {
                             bunkListHtml += `<li class="text-sm text-yellow-800"><span class="font-semibold">${formatDate(day.date)}:</span> ${day.who} must miss class: <span class="font-semibold">${day.class}</span></li>`;
                         });
                         bunkListHtml += `</ul>`;
+                        bunkListHtml += `</div>`; // Close the new div
                     }
                 }
                 resultsContainer.innerHTML = calendarHtml + bunkListHtml;
@@ -883,4 +885,3 @@
     </script>
 </body>
 </html>
-
