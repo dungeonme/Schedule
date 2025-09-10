@@ -1,484 +1,637 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Class Schedule — Search Fixed</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Poppins', sans-serif; background-color:#F0F4F8; }
-    .btn { background:#4A90E2;color:#fff;padding:.6rem 1rem;border-radius:.5rem;border:none;cursor:pointer; font-weight:600; }
-    .btn.secondary { background:#e5e7eb; color:#111827; }
-    .search-results { position:absolute; z-index:40; background:#fff; border:1px solid #e5e7eb; border-top:0; width:100%; max-height:260px; overflow:auto; box-shadow:0 6px 18px rgba(0,0,0,0.06); }
-    .search-result-item { padding:10px 12px; cursor:pointer; }
-    .search-result-item:hover { background:#f3f4f6; }
-    .tag { background:#2563eb; color:#fff; padding:6px 10px; border-radius:999px; display:inline-flex; gap:8px; align-items:center; margin:4px; font-weight:600; }
-    .tag button { background:transparent; border:0; color:#fff; cursor:pointer; font-weight:700; }
-    .loader { border:4px solid #f3f3f3; border-top:4px solid #4A90E2; border-radius:50%; width:36px; height:36px; animation:spin 1s linear infinite; margin:16px auto; }
-    @keyframes spin { to { transform:rotate(360deg);} }
-    .hidden { display:none; }
-    .card { background:white; padding:16px; border-radius:12px; box-shadow:0 8px 20px rgba(0,0,0,0.04); border:1px solid #e6edf3; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Planner</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DRYFN2F2WR"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-DRYFN2F2WR');
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #F0F4F8;
+        }
+        .card {
+            background-color: white;
+            border-radius: 1rem;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            padding: 1.5rem;
+            transition: all 0.3s ease-in-out;
+        }
+        .card-title {
+            font-weight: 600;
+            color: #2D3748;
+        }
+        .btn {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            background-color: #357ABD;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4A90E2;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .calendar-day {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: #F7FAFC;
+            color: #A0AEC0;
+            cursor: pointer;
+            transition: transform 0.1s ease-in-out;
+        }
+        .calendar-day:hover {
+            transform: scale(1.1);
+        }
+        .calendar-day-header {
+            font-weight: 600;
+            color: #4A5568;
+            background-color: transparent;
+            cursor: default;
+        }
+        .calendar-day-header:hover { transform: none; }
+        .day-free { background-color: #C6F6D5; color: #2F855A; }
+        .day-bunkable { background-color: #FEFCBF; color: #B7791F; }
+        .day-busy { background-color: #FED7D7; color: #C53030; }
+        .day-outside-term { background-color: #EDF2F7; color: #A0AEC0; cursor: not-allowed; }
+        .day-outside-term:hover { transform: none; }
+        .day-light-load { background-color: #BEE3F8; color: #2C5282; }
+        .day-medium-load { background-color: #63B3ED; color: #1A365D; }
+        .day-heavy-load { background-color: #3182CE; color: #EBF8FF; }
+    </style>
 </head>
-<body class="p-6">
-  <div class="max-w-3xl mx-auto">
-    <h1 class="text-2xl font-bold mb-4">Class Schedule — Test (search fixed)</h1>
-    <p id="connectionStatus" class="text-gray-500 mb-4">Connecting to sheet…</p>
+<body class="bg-gray-50 flex flex-col min-h-screen">
 
-    <div class="card mb-4">
-      <label class="block mb-2 font-semibold">Search and add a subject</label>
-      <div style="position:relative;">
-        <input id="subjectSearchInput" type="text" placeholder="Type subject (e.g. FE, SF)..." class="w-full p-3 border rounded-md" autocomplete="off" />
-        <div id="searchResults" class="search-results hidden" role="listbox" aria-label="Search results"></div>
-      </div>
-      <div id="selectedTagsContainer" style="margin-top:12px;"></div>
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="./index.html" class="text-lg md:text-xl font-bold text-gray-800 hover:text-gray-600">Student Dashboard</a>
+            
+            <nav class="hidden md:flex gap-6">
+                <a href="./class_schedule.html" class="text-gray-600 hover:text-blue-600 font-medium">Class Schedule</a>
+                <a href="./mess.html" class="text-gray-600 hover:text-blue-600 font-medium">Mess Schedule</a>
+                 <a href="./HolidayPlanner.html" class="text-gray-600 hover:text-blue-600 font-medium">Holiday Planner</a>
+            </nav>
+
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-600 hover:text-gray-800 focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden bg-white border-t border-gray-200">
+            <a href="./index.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Home</a>
+            <a href="./class_schedule.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Class Schedule</a>
+            <a href="./mess.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Mess Schedule</a>
+            <a href="./HolidayPlanner.html" class="block py-2 px-4 text-sm text-gray-600 hover:bg-gray-100">Holiday Planner</a>
+        </div>
+    </header>
+
+    <div class="container mx-auto p-4 md:p-6 max-w-4xl flex-grow">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-[#2D3748]">Holiday Planner 🏖️</h1>
+            <p id="connectionStatus" class="text-gray-500 mt-2">Connecting...</p>
+        </header>
+
+        <main id="plannerContent" class="flex flex-col gap-6">
+            
+            <div id="initial-choice" class="card">
+                <h2 class="card-title text-xl mb-4 text-center">How would you like to plan?</h2>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <button id="plan-solo-btn" class="btn text-lg py-3 !bg-blue-500 hover:!bg-blue-600">Plan Your Holiday</button>
+                    <button id="plan-group-btn" class="btn text-lg py-3 !bg-purple-500 hover:!bg-purple-600">Plan Group Holiday</button>
+                </div>
+            </div>
+
+            <button id="back-to-choice-btn" class="hidden self-start mb-4 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">← Back to Main Menu</button>
+            
+            <div id="solo-planner" class="hidden flex flex-col gap-6">
+                <div id="solo-calendar-view">
+                    <div class="card">
+                        <h2 class="card-title text-xl mb-4">Step 1: Enter Your Subjects</h2>
+                        <div class="relative mb-4">
+                            <input type="text" id="soloSubjectSearchInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add your subjects...">
+                            <div id="soloSearchResults" class="search-results-container absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
+                        </div>
+                        <div id="soloSelectedTagsContainer" class="tags-container flex flex-wrap gap-2 mb-4"></div>
+                        <button id="showMyCalendarBtn" class="btn w-full">Show My Holiday Calendar</button>
+                    </div>
+                    <div id="myCalendarResults" class="card hidden mt-6"></div>
+                </div>
+
+                <div id="solo-date-detail-view" class="hidden">
+                    <button id="solo-back-to-calendar-btn" class="self-start mb-4 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">← Go Back to Calendar</button>
+                    <div id="date-search-results" class="card">
+                        <h2 class="card-title text-xl mb-4">Classes on <span id="selected-date-span"></span></h2>
+                        <div id="selectedDateClasses"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="group-planner" class="hidden flex flex-col gap-6">
+                <div id="group-calendar-view">
+                     <div id="group-setup" class="card">
+                        <h2 class="card-title text-xl mb-4 text-center">Step 1: How many people in the group?</h2>
+                         <div id="group-size-buttons" class="flex justify-center gap-4">
+                            <button class="btn group-size-btn text-2xl font-bold w-20 h-20 flex items-center justify-center rounded-full !bg-purple-500 hover:!bg-purple-600" data-size="2">2</button>
+                            <button class="btn group-size-btn text-2xl font-bold w-20 h-20 flex items-center justify-center rounded-full !bg-purple-500 hover:!bg-purple-600" data-size="3">3</button>
+                            <button class="btn group-size-btn text-2xl font-bold w-20 h-20 flex items-center justify-center rounded-full !bg-purple-500 hover:!bg-purple-600" data-size="4">4</button>
+                        </div>
+                    </div>
+                    <div id="group-subject-inputs" class="hidden flex flex-col gap-6"></div>
+                     <div id="group-calendar-section" class="hidden card mt-6">
+                        <h2 class="card-title text-xl mb-4">Step 3: Find Group Holidays</h2>
+                        <button id="compareSchedulesBtn" class="btn w-full !bg-purple-500 hover:!bg-purple-600 text-lg py-3">Find Common & Bunkable Holidays</button>
+                        <div id="comparisonResults" class="mt-4"></div>
+                    </div>
+                </div>
+                <div id="date-detail-view" class="hidden">
+                    <button id="back-to-calendar-btn" class="self-start mb-4 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">← Go Back to Calendar</button>
+                    <div id="group-date-search-results" class="card">
+                        <h2 class="card-title text-xl mb-4">Group's Classes on <span id="group-selected-date-span"></span></h2>
+                        <div id="groupSelectedDateClasses"></div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
     </div>
+            <div class="text-center mt-8">
+            <a href="./index.html" class="btn inline-block">🏠 Back to Home</a>
+        </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+            
+            let allSheetData = [], allClasses = [], groupSubjects = [];
 
-    <div class="flex gap-3 mb-6">
-      <button id="downloadMonthBtn" class="btn secondary" disabled>Download Outlook/Google Calendar File</button>
-      <button id="syncToGoogleBtn" class="btn" disabled>Sync to Google Calendar</button>
-      <button id="refreshBtn" class="btn secondary">Refresh Data</button>
-    </div>
+            // UI Elements
+            const initialChoiceDiv = document.getElementById('initial-choice');
+            const backBtn = document.getElementById('back-to-choice-btn');
+            // Solo
+            const soloPlannerDiv = document.getElementById('solo-planner');
+            const soloCalendarView = document.getElementById('solo-calendar-view');
+            const soloDateDetailView = document.getElementById('solo-date-detail-view');
+            // Group
+            const groupPlannerDiv = document.getElementById('group-planner');
+            const groupCalendarView = document.getElementById('group-calendar-view');
+            const dateDetailView = document.getElementById('date-detail-view');
 
-    <div id="todayClasses" class="card mb-4"><div class="loader"></div></div>
-    <div id="upcomingClassesContainer" class="card"><div class="loader"></div></div>
-  </div>
+            // --- Core Logic & Data Fetching ---
+            function showToast(message, type = 'error') {
+                const toast = document.createElement('div');
+                toast.textContent = message;
+                toast.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
 
-  <!-- Google Identity (only needed if you test Sync) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+            function parseDate(dateString) {
+                if (!dateString) return null;
+                const parts = dateString.trim().split('/');
+                if (parts.length === 3) {
+                    const [month, day, year] = parts.map(p => parseInt(p, 10));
+                    if (!isNaN(month) && !isNaN(day) && !isNaN(year)) return new Date(year < 100 ? 2000 + year : year, month - 1, day);
+                }
+                return null;
+            }
 
-  <script>
-  (function(){
-    // ---------------- CONFIG ----------------
-    const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com'; // replace with your own client id for Google Sync
-    const SCOPE = 'https://www.googleapis.com/auth/calendar.events';
-    const API_URL = 'https://sheets.googleapis.com/v4/spreadsheets/1386awb-Qw-_ld03zlXFNfkkHi7N9XY4LwirxQtkMpZk/values/New!A1:N1300?key=AIzaSyBQps5D4hUe8owgZOe4-qgFwoXwl5x6ATo';
+            function parseClassInfo(s) { return { class: s ? s.trim() : 'Unnamed Class' }; }
 
-    // ---------------- state ----------------
-    let allSheetData = [];     // raw sheet value arrays
-    let allClasses = [];       // deduped subject list available for search
-    let enrolledClasses = [];  // user selected subjects (tags)
-    let tokenResponse = null;
-    let tokenClient = null;
-    let pendingSyncFunction = null;
+            async function fetchData() {
+                document.getElementById('connectionStatus').textContent = 'Loading schedule data...';
+                try {
+                    const response = await fetch(API_URL);
+                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                    const data = await response.json();
+                    allSheetData = data.values || [];
+                    const uniqueMasterClasses = new Set(allSheetData.slice(1).map(row => row[9] ? row[9].trim() : null).filter(Boolean));
+                    allClasses = [...uniqueMasterClasses].sort();
+                    const lastUpdatedDate = allSheetData[0] && allSheetData[0][6] ? `as updated on ${allSheetData[0][6]}` : 'Last updated: Not available';
+                    document.getElementById('connectionStatus').textContent = `Schedule data loaded (${lastUpdatedDate})`;
+                } catch (error) {
+                    document.getElementById('connectionStatus').textContent = '⚠️ Connection Failed';
+                    showToast('Could not load schedule data. Please refresh.');
+                }
+            }
+            
+            // --- View Management ---
+            function showView(view) {
+                // Hide all dynamic content first
+                initialChoiceDiv.classList.add('hidden');
+                backBtn.classList.add('hidden');
+                
+                soloPlannerDiv.classList.add('hidden');
+                soloCalendarView.classList.remove('hidden');
+                soloDateDetailView.classList.add('hidden');
 
-    // ---------------- small helpers ----------------
-    const q = (sel) => document.querySelector(sel);
-    const qa = (sel) => Array.from(document.querySelectorAll(sel));
-    function escapeHtml(s){ return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-    function pad2(n){ return (n<10? '0'+n : ''+n); }
+                groupPlannerDiv.classList.add('hidden');
+                groupCalendarView.classList.remove('hidden');
+                dateDetailView.classList.add('hidden');
+                
+                document.getElementById('myCalendarResults').classList.add('hidden');
+                document.getElementById('group-calendar-section').classList.add('hidden');
+                document.getElementById('group-subject-inputs').classList.add('hidden');
+                document.getElementById('group-setup').classList.remove('hidden');
 
-    // ---------------- parsing helpers (robust) ----------------
-    function parseDate(dateString) {
-      if(!dateString) return null;
-      const s = String(dateString).trim();
-      if (s.includes('/')) {
-        const parts = s.split('/').map(p => p.trim());
-        if (parts.length === 3) {
-          let a=parseInt(parts[0],10), b=parseInt(parts[1],10), c=parseInt(parts[2],10);
-          if (isNaN(a)||isNaN(b)||isNaN(c)) return null;
-          if (a>12) { const day=a, month=b, year=(c<100?2000+c:c); return new Date(year, month-1, day); }
-          // default to day-first for this sheet
-          const day=a, month=b, year=(c<100?2000+c:c);
-          return new Date(year, month-1, day);
-        }
-      }
-      const d = new Date(s);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    function parseTimeString(tstr) {
-      if(!tstr) return null;
-      const s = String(tstr).trim().toLowerCase().replace(/\./g,':').replace(/\s+/g,' ');
-      const m = s.match(/(\d{1,2})(?::|:)?(\d{2})?\s*(am|pm)?/i);
-      if(!m) return null;
-      let hh = parseInt(m[1],10);
-      let mm = m[2] ? parseInt(m[2],10) : 0;
-      const ap = m[3];
-      if (ap) {
-        if (ap.toLowerCase() === 'pm' && hh < 12) hh += 12;
-        if (ap.toLowerCase() === 'am' && hh === 12) hh = 0;
-      }
-      return { hours: hh, minutes: mm };
-    }
-    function toRFC3339_Kolkata(dateObj) {
-      const yyyy = dateObj.getFullYear();
-      const mm = pad2(dateObj.getMonth()+1);
-      const dd = pad2(dateObj.getDate());
-      const hh = pad2(dateObj.getHours());
-      const min = pad2(dateObj.getMinutes());
-      return `${yyyy}-${mm}-${dd}T${hh}:${min}:00+05:30`;
-    }
+                if (view === 'initial') {
+                    initialChoiceDiv.classList.remove('hidden');
+                } else {
+                    backBtn.classList.remove('hidden');
+                    if (view === 'solo') soloPlannerDiv.classList.remove('hidden');
+                    else if (view === 'group') groupPlannerDiv.classList.remove('hidden');
+                }
+            }
 
-    // ---------------- UI: search + tags ----------------
-    const searchInput = q('#subjectSearchInput');
-    const resultsEl = q('#searchResults');
-    const tagsContainer = q('#selectedTagsContainer');
-    const downloadBtn = q('#downloadMonthBtn');
-    const syncBtn = q('#syncToGoogleBtn');
-    const refreshBtn = q('#refreshBtn');
+            // --- Subject Search Setup (Generic) ---
+            function setupSubjectSearch(container, subjectArray) {
+                const searchInput = container.querySelector('input');
+                const resultsContainer = container.querySelector('.search-results-container');
+                const tagsContainer = container.querySelector('.tags-container');
+                
+                const renderTags = () => {
+                    tagsContainer.innerHTML = subjectArray.map(subject => `<div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm"><span>${subject}</span><button class="font-bold remove-tag-btn" data-subject="${subject}">x</button></div>`).join('');
+                };
 
-    function buildAllClassesFromSheet() {
-      // check multiple candidate columns in each row for subject names
-      const candidates = new Set();
-      for (let i=1; i<allSheetData.length; i++){
-        const row = allSheetData[i] || [];
-        // candidate columns (0-based): [2,9,10,11,3] like we used earlier
-        [2,9,10,11,3].forEach(idx => {
-          const v = row[idx];
-          if (v && String(v).trim()) candidates.add(String(v).trim());
+                searchInput.addEventListener('input', () => {
+                    const query = searchInput.value.toLowerCase();
+                    if (!query) { resultsContainer.classList.add('hidden'); return; }
+                    const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !subjectArray.includes(c));
+                    resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer search-result-item" data-subject="${c}">${c}</div>`).join('');
+                    resultsContainer.classList.toggle('hidden', filtered.length === 0);
+                });
+
+                resultsContainer.addEventListener('click', e => {
+                    if (e.target.classList.contains('search-result-item')) {
+                        subjectArray.push(e.target.dataset.subject);
+                        subjectArray.sort();
+                        renderTags();
+                        searchInput.value = '';
+                        resultsContainer.classList.add('hidden');
+                    }
+                });
+
+                tagsContainer.addEventListener('click', e => {
+                    if (e.target.classList.contains('remove-tag-btn')) {
+                        const index = subjectArray.indexOf(e.target.dataset.subject);
+                        if (index > -1) subjectArray.splice(index, 1);
+                        renderTags();
+                    }
+                });
+                renderTags();
+            }
+
+            // --- Solo Planner Logic ---
+            function generateMyCalendar() {
+                const mySubjects = groupSubjects[0];
+                const resultsContainer = document.getElementById('myCalendarResults');
+                if (!mySubjects || mySubjects.length === 0) { showToast('Please select your subjects first.'); return; }
+                
+                resultsContainer.innerHTML = '<div class="loader"></div>';
+                resultsContainer.classList.remove('hidden');
+
+                const termStartDate = new Date(2025, 8, 10), termEndDate = new Date(2025, 11, 6);
+                const myDailySchedule = {};
+
+                allSheetData.forEach(row => {
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+                    const classNameLower = parseClassInfo(row[2]).class.toLowerCase();
+                    if (mySubjects.some(s => classNameLower.includes(s.toLowerCase()))) {
+                        const dateKey = classDate.toISOString().split('T')[0];
+                        if (!myDailySchedule[dateKey]) myDailySchedule[dateKey] = 0;
+                        myDailySchedule[dateKey]++;
+                    }
+                });
+                renderMyCalendar(myDailySchedule, termStartDate, termEndDate);
+            }
+
+            function renderMyCalendar(myDailySchedule, termStartDate, termEndDate) {
+                const resultsContainer = document.getElementById('myCalendarResults');
+                let html = `<h2 class="card-title text-xl mb-4">Your Term Calendar</h2>
+                <div class="flex justify-center flex-wrap gap-4 mt-4 text-xs">
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Holiday</div>
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-200 mr-2"></span> 1 Class</div>
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-400 mr-2"></span> 2 Classes</div>
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-600 mr-2"></span> 3+ Classes</div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
+
+                for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
+                    const date = new Date(termStartDate.getFullYear(), month, 1);
+                    html += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })} 2025</h4><div class="calendar-grid">`;
+                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => html += `<div class="calendar-day calendar-day-header">${day}</div>`);
+                    for (let i = 0; i < date.getDay(); i++) html += `<div></div>`;
+                    
+                    while (date.getMonth() === month) {
+                        const dateKey = date.toISOString().split('T')[0];
+                        const classCount = myDailySchedule[dateKey] || 0;
+                        let dayClass = 'calendar-day', title = 'Click to see details';
+
+                        if (date < termStartDate || date > termEndDate) { 
+                            dayClass += ' day-outside-term'; title = 'Outside Term'; 
+                        } else {
+                            if (classCount === 0) { dayClass += ' day-free'; }
+                            else { 
+                                if (classCount === 1) dayClass += ' day-light-load';
+                                else if (classCount === 2) dayClass += ' day-medium-load';
+                                else dayClass += ' day-heavy-load';
+                            }
+                        }
+                        html += `<div class="${dayClass}" data-date="${dateKey}" title="${title}">${date.getDate()}</div>`;
+                        date.setDate(date.getDate() + 1);
+                    }
+                    html += `</div></div>`;
+                }
+                resultsContainer.innerHTML = html + `</div>`;
+            }
+            
+            function showClassesForDate(dateStr) {
+                 soloCalendarView.classList.add('hidden');
+                 soloDateDetailView.classList.remove('hidden');
+
+                 const mySubjects = groupSubjects[0];
+                 const targetDate = new Date(dateStr + 'T00:00:00');
+                 const container = document.getElementById('selectedDateClasses');
+                 const dateSpan = document.getElementById('selected-date-span');
+                 dateSpan.textContent = targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                 
+                 const classes = allSheetData.filter(row => {
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[2]) return false;
+                    const className = parseClassInfo(row[2]).class.toLowerCase();
+                    return classDate.toISOString().split('T')[0] === dateStr && mySubjects.some(s => className.includes(s.toLowerCase()));
+                 }).map(row => ({ time: row[1], class: parseClassInfo(row[2]).class }))
+                 .sort((a,b) => (a.time || "").localeCompare(b.time || ""));
+
+                 if(classes.length === 0) {
+                     container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled! You are free!</p>';
+                 } else {
+                     container.innerHTML = classes.map(c => `<div class="p-3 border rounded-lg mb-2 bg-gray-50">
+                        <p class="font-bold text-gray-800">${c.class}</p>
+                        <p class="text-sm text-gray-600">🕒 ${c.time || 'N/A'}</p>
+                     </div>`).join('');
+                 }
+            }
+
+
+            // --- Group Planner Logic ---
+            function setupGroupSubjectInputs(size) {
+                if (isNaN(size) || size < 2 || size > 10) {
+                    showToast('Invalid group size selected.');
+                    return;
+                }
+                const container = document.getElementById('group-subject-inputs');
+                container.innerHTML = '';
+                groupSubjects = [];
+                const savedSubjects = JSON.parse(localStorage.getItem('enrolledClasses')) || [];
+                
+                // Add the saved subjects to Person 1's list
+                groupSubjects.push(savedSubjects);
+
+                for(let i=0; i < size; i++){
+                    const personNum = i + 1;
+                    if(i > 0){
+                        groupSubjects.push([]);
+                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <h2 class="card-title text-xl mb-4">Step 2: Enter Subjects for Person ${personNum}</h2>
+                        <div class="relative mb-4">
+                            <input type="text" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="Search and add subjects...">
+                            <div class="search-results-container absolute top-full left-0 w-full bg-white border border-gray-300 rounded-b-lg z-10 hidden max-h-60 overflow-y-auto"></div>
+                        </div>
+                        <div class="tags-container flex flex-wrap gap-2 mb-4"></div>`;
+                    container.appendChild(card);
+                    setupSubjectSearch(card, groupSubjects[i]);
+                }
+                document.getElementById('group-setup').classList.add('hidden');
+                container.classList.remove('hidden');
+                document.getElementById('group-calendar-section').classList.remove('hidden');
+            }
+
+            function generateGroupCalendar() {
+                const resultsContainer = document.getElementById('comparisonResults');
+                if (groupSubjects.some(arr => arr.length === 0)) {
+                    showToast('Please enter at least one subject for every person.');
+                    return;
+                }
+
+                resultsContainer.innerHTML = '<div class="loader"></div>';
+                const termStartDate = new Date(2025, 8, 10), termEndDate = new Date(2025, 11, 6);
+                const dailySchedule = {}; 
+
+                allSheetData.forEach(row => {
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+                    
+                    const dateKey = classDate.toISOString().split('T')[0];
+                    if (!dailySchedule[dateKey]) dailySchedule[dateKey] = { totalClasses: 0, details: [] };
+
+                    const className = parseClassInfo(row[2]).class;
+                    const classNameLower = className.toLowerCase();
+                    
+                    groupSubjects.forEach((subjects, personIndex) => {
+                        if (subjects.some(s => classNameLower.includes(s.toLowerCase()))) {
+                            dailySchedule[dateKey].totalClasses++;
+                            dailySchedule[dateKey].details.push({ who: `Person ${personIndex + 1}`, class: className });
+                        }
+                    });
+                });
+                renderGroupCalendar(dailySchedule, termStartDate, termEndDate);
+            }
+
+            function renderGroupCalendar(dailySchedule, termStartDate, termEndDate) {
+                const resultsContainer = document.getElementById('comparisonResults');
+                const groupSize = groupSubjects.length;
+
+                 let calendarHtml = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs">
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Holiday (Everyone Free)</div>
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 mr-2"></span> Bunkable</div>
+                    <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy Day</div>
+                </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
+
+                for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
+                    const date = new Date(termStartDate.getFullYear(), month, 1);
+                    calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })} 2025</h4><div class="calendar-grid">`;
+                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day calendar-day-header">${day}</div>`);
+                    for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
+
+                    while (date.getMonth() === month) {
+                        const dateKey = date.toISOString().split('T')[0];
+                        const dayData = dailySchedule[dateKey];
+                        const classCount = dayData ? dayData.totalClasses : 0;
+                        let dayClass = 'calendar-day', title = 'Click to see details';
+
+                        if (date < termStartDate || date > termEndDate) {
+                            dayClass += ' day-outside-term'; title = 'Outside Term';
+                        } else if (classCount === 0) {
+                            dayClass += ' day-free';
+                        } else if (classCount > 0 && classCount <= groupSize) {
+                            const countsPerPerson = new Array(groupSize).fill(0);
+                            if(dayData.details){
+                                dayData.details.forEach(detail => {
+                                    const personIndex = parseInt(detail.who.replace('Person ', ''), 10) - 1;
+                                    countsPerPerson[personIndex]++;
+                                });
+                            }
+                            if (countsPerPerson.every(count => count <= 1)) {
+                                dayClass += ' day-bunkable';
+                            } else {
+                                dayClass += ' day-busy';
+                            }
+                        } else {
+                            dayClass += ' day-busy';
+                        }
+                        
+                        calendarHtml += `<div class="${dayClass}" data-date="${dateKey}" title="${title}">${date.getDate()}</div>`;
+                        date.setDate(date.getDate() + 1);
+                    }
+                    calendarHtml += `</div></div>`;
+                }
+                
+                resultsContainer.innerHTML = calendarHtml;
+            }
+
+            function showGroupClassesForDate(dateStr) {
+                groupCalendarView.classList.add('hidden');
+                dateDetailView.classList.remove('hidden');
+                
+                const container = document.getElementById('groupSelectedDateClasses');
+                const dateSpan = document.getElementById('group-selected-date-span');
+                const targetDate = new Date(dateStr + 'T00:00:00');
+
+                dateSpan.textContent = targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+                const classesOnDay = {};
+
+                allSheetData.forEach(row => {
+                    const classDate = parseDate(row[0]);
+                    if (!classDate || classDate.toISOString().split('T')[0] !== dateStr || !row[1] || !row[2]) return;
+
+                    const className = parseClassInfo(row[2]).class;
+                    const classNameLower = className.toLowerCase();
+                    const classTime = row[1];
+
+                    groupSubjects.forEach((personSubjects, personIndex) => {
+                        if (personSubjects.some(s => classNameLower.includes(s.toLowerCase()))) {
+                            const classKey = `${className}|${classTime}`;
+                            if (!classesOnDay[classKey]) {
+                                classesOnDay[classKey] = { class: className, time: classTime, who: [] };
+                            }
+                            classesOnDay[classKey].who.push(`Person ${personIndex + 1}`);
+                        }
+                    });
+                });
+
+                const sortedClasses = Object.values(classesOnDay).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+
+                if (sortedClasses.length === 0) {
+                    container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled for the group! Everyone is free!</p>';
+                } else {
+                    container.innerHTML = sortedClasses.map(c => `
+                        <div class="p-3 border rounded-lg mb-2 bg-gray-50">
+                            <p class="font-bold text-gray-800">${c.class}</p>
+                            <p class="text-sm text-gray-600">🕒 ${c.time || 'N/A'}</p>
+                            <p class="text-sm text-purple-700 mt-1">Attended by: <span class="font-medium">${c.who.join(', ')}</span></p>
+                        </div>
+                    `).join('');
+                }
+            }
+
+
+            // --- Event Listeners & Initialization ---
+            function initialize() {
+                fetchData();
+
+                document.getElementById('plan-solo-btn').addEventListener('click', () => {
+                    const savedSubjects = JSON.parse(localStorage.getItem('enrolledClasses')) || [];
+                    groupSubjects = [savedSubjects];
+                    const soloContainer = soloPlannerDiv.querySelector('.card');
+                    setupSubjectSearch(soloContainer, groupSubjects[0]);
+                    showView('solo');
+                });
+                document.getElementById('plan-group-btn').addEventListener('click', () => showView('group'));
+                backBtn.addEventListener('click', () => showView('initial'));
+                
+                // Solo Listeners
+                document.getElementById('showMyCalendarBtn').addEventListener('click', generateMyCalendar);
+                document.getElementById('myCalendarResults').addEventListener('click', e => {
+                    const dayEl = e.target.closest('.calendar-day[data-date]');
+                    if (dayEl) showClassesForDate(dayEl.dataset.date);
+                });
+                 document.getElementById('solo-back-to-calendar-btn').addEventListener('click', () => {
+                    soloDateDetailView.classList.add('hidden');
+                    soloCalendarView.classList.remove('hidden');
+                });
+
+                // Group Listeners
+                document.getElementById('group-size-buttons').addEventListener('click', (e) => {
+                    const button = e.target.closest('.group-size-btn');
+                    if(button) {
+                        const size = parseInt(button.dataset.size, 10);
+                        setupGroupSubjectInputs(size);
+                    }
+                });
+                document.getElementById('compareSchedulesBtn').addEventListener('click', generateGroupCalendar);
+                document.getElementById('comparisonResults').addEventListener('click', e => {
+                    const dayEl = e.target.closest('.calendar-day[data-date]');
+                    if (dayEl) showGroupClassesForDate(dayEl.dataset.date);
+                });
+                document.getElementById('back-to-calendar-btn').addEventListener('click', () => {
+                    dateDetailView.classList.add('hidden');
+                    groupCalendarView.classList.remove('hidden');
+                });
+                
+                const mobileMenuButton = document.getElementById('mobile-menu-button');
+                const mobileMenu = document.getElementById('mobile-menu');
+                mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+            }
+            
+            initialize();
         });
-      }
-      allClasses = Array.from(candidates).sort((a,b)=> a.localeCompare(b));
-    }
-
-    function showSearchResults(list) {
-      if (!list || list.length === 0) {
-        resultsEl.innerHTML = '<div class="p-2 text-sm text-gray-500">No matches</div>';
-        resultsEl.classList.remove('hidden');
-        return;
-      }
-      resultsEl.innerHTML = list.map(item => `<div class="search-result-item" data-val="${escapeHtml(item)}">${escapeHtml(item)}</div>`).join('');
-      resultsEl.classList.remove('hidden');
-    }
-
-    function updateTagsUI() {
-      tagsContainer.innerHTML = enrolledClasses.map(s => {
-        return `<span class="tag" data-sub="${escapeHtml(s)}">${escapeHtml(s)} <button aria-label="remove" class="remove-tag" data-sub="${escapeHtml(s)}">&times;</button></span>`;
-      }).join('') || '<div class="text-gray-500">No subjects selected</div>';
-      // toggle buttons
-      const enabled = enrolledClasses.length > 0;
-      downloadBtn.disabled = !enabled;
-      syncBtn.disabled = !enabled;
-      downloadBtn.classList.toggle('btn', enabled);
-      syncBtn.classList.toggle('btn', enabled);
-    }
-
-    // click handler for result items
-    resultsEl.addEventListener('click', (ev) => {
-      const item = ev.target.closest('[data-val]');
-      if (!item) return;
-      const val = item.getAttribute('data-val');
-      if (!val) return;
-      if (!enrolledClasses.includes(val)) {
-        enrolledClasses.push(val);
-        enrolledClasses.sort((a,b)=>a.localeCompare(b));
-      }
-      searchInput.value = '';
-      resultsEl.classList.add('hidden');
-      updateTagsUI();
-      renderTodayTomorrow(); // update classes panels immediately
-    });
-
-    // remove tag
-    tagsContainer.addEventListener('click', (ev) => {
-      const btn = ev.target.closest('.remove-tag');
-      if (!btn) return;
-      const sub = btn.getAttribute('data-sub');
-      enrolledClasses = enrolledClasses.filter(x => x !== sub);
-      updateTagsUI();
-      renderTodayTomorrow();
-    });
-
-    // input typing -> filter
-   searchInput.addEventListener('input', () => {
-    const query = searchInput.value.toLowerCase().trim();
-    if (!query || query.length < 2) { resultsContainer.classList.add('hidden'); return; }
-    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const wordBoundaryRegex = new RegExp(`\\b${escapedQuery}`, 'i');
-    const filtered = allClasses.filter(c => wordBoundaryRegex.test(c) && !targetArray.includes(c));
-    resultsContainer.innerHTML = filtered.slice(0, 8).map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
-    resultsContainer.classList.toggle('hidden', filtered.length === 0);
-});
-
-    // hide on outside click
-    document.addEventListener('click', (ev) => {
-      if (!ev.target.closest('#subjectSearchInput') && !ev.target.closest('#searchResults')) {
-        resultsEl.classList.add('hidden');
-      }
-    });
-
-    // ---------------- Sheet fetch & rendering ----------------
-    async function refreshData() {
-      q('#connectionStatus').textContent = 'Loading spreadsheet...';
-      try {
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error('Sheet fetch failed: ' + res.status);
-        const json = await res.json();
-        allSheetData = json.values || [];
-        buildAllClassesFromSheet();
-        q('#connectionStatus').textContent = 'Spreadsheet loaded — ' + (allClasses.length) + ' subjects detected';
-        updateTagsUI();
-        renderTodayTomorrow();
-      } catch (err) {
-        console.error(err);
-        q('#connectionStatus').textContent = '⚠️ Connection failed';
-      }
-    }
-
-    function isSameDay(a,b){ return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
-
-    function renderClassesForDate(date, containerId) {
-      const container = q('#' + containerId);
-      const rows = [];
-      for (let i=1; i<allSheetData.length; i++){
-        const row = allSheetData[i] || [];
-        if (!row[0] || !row[1]) continue;
-        const classDate = parseDate(row[0]);
-        if (!classDate || !isSameDay(classDate, date)) continue;
-        // find class name from candidate columns
-        let className = null;
-        [2,9,10,11,3].forEach(idx => { if (!className && row[idx] && String(row[idx]).trim()) className = String(row[idx]).trim(); });
-        if (!className) continue;
-        if (enrolledClasses.length > 0) {
-          const cn = className.toLowerCase();
-          if (!enrolledClasses.some(s => cn.includes(String(s).toLowerCase()))) continue;
-        }
-        rows.push({ class: className, time: row[1], location: row[4] || '', professor: row[6] || 'N/A' });
-      }
-      if (rows.length === 0) {
-        container.innerHTML = '<div style="padding:16px;color:#6b7280">No classes</div>';
-      } else {
-        container.innerHTML = rows.map(r => `<div style="padding:12px;border-bottom:1px solid #eef2f7"><div style="font-weight:700">${escapeHtml(r.class)}</div><div style="color:#475569;margin-top:6px">${escapeHtml(r.time)} • ${escapeHtml(r.location)} • Prof: ${escapeHtml(r.professor)}</div></div>`).join('');
-      }
-    }
-
-    function renderTodayTomorrow() {
-      const today = new Date();
-      const tomorrow = new Date(); tomorrow.setDate(today.getDate()+1);
-      renderClassesForDate(today, 'todayClasses');
-      renderClassesForDate(tomorrow, 'upcomingClassesContainer');
-    }
-
-    // ---------------- ICS generation (unchanged) ----------------
-    function generateMonthlyICS() {
-      if (enrolledClasses.length === 0) { alert('Select subjects first'); return; }
-      const termStart = new Date(2025,8,10), termEnd = new Date(2025,11,6);
-      let icsHeader = [
-        'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StudentDashboard//AkshaySharma//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
-        'BEGIN:VTIMEZONE','TZID:Asia/Kolkata','BEGIN:STANDARD','DTSTART:19700101T000000','TZOFFSETFROM:+0530','TZOFFSETTO:+0530','TZNAME:IST','END:STANDARD','END:VTIMEZONE'
-      ].join('\r\n') + '\r\n';
-      let icsBody = '';
-      let count = 0;
-      for (let i=1;i<allSheetData.length;i++){
-        const row = allSheetData[i] || [];
-        if (!row[0] || !row[1]) continue;
-        const classDate = parseDate(row[0]);
-        if (!classDate || classDate < termStart || classDate > termEnd) continue;
-        // subject
-        let className = null;
-        [2,9,10,11,3].forEach(idx => { if (!className && row[idx] && String(row[idx]).trim()) className = String(row[idx]).trim(); });
-        if (!className) continue;
-        if (enrolledClasses.length > 0) {
-          const cn = className.toLowerCase();
-          if (!enrolledClasses.some(s => cn.includes(String(s).toLowerCase()))) continue;
-        }
-        // parse time
-        const timeParts = String(row[1]).split(/[-–—\u2013\u2014]|to/i).map(s=>s.trim()).filter(Boolean);
-        if (timeParts.length < 2) continue;
-        const startT = parseTimeString(timeParts[0]), endT = parseTimeString(timeParts[1]);
-        if (!startT || !endT) continue;
-        const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startT.hours, startT.minutes);
-        const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endT.hours, endT.minutes);
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) continue;
-        // stable UID: prefer a 'rowNN' value if present in the row, else fallback to row index
-        let stable = null;
-        for (const cell of row) {
-          if (typeof cell === 'string' && /^row\d+/i.test(cell.trim())) { stable = cell.trim(); break; }
-        }
-        const uid = stable ? `${stable}@studentdashboard.com` : `r${i}-${className.replace(/\s+/g,'') }@studentdashboard.com`;
-        const dtstamp = new Date().toISOString().replace(/[-:.]/g,'').slice(0,-4) + 'Z';
-        const dtstart = `${startDate.getFullYear()}${pad2(startDate.getMonth()+1)}${pad2(startDate.getDate())}T${pad2(startDate.getHours())}${pad2(startDate.getMinutes())}00`;
-        const dtend = `${endDate.getFullYear()}${pad2(endDate.getMonth()+1)}${pad2(endDate.getDate())}T${pad2(endDate.getHours())}${pad2(endDate.getMinutes())}00`;
-        const description = `Professor: ${row[6] ? row[6] : 'N/A'}`;
-        const location = row[4] ? row[4] : '';
-        icsBody += [
-          'BEGIN:VEVENT',
-          `DTSTAMP:${dtstamp}`,
-          `UID:${uid}`,
-          `DTSTART;TZID=Asia/Kolkata:${dtstart}`,
-          `DTEND;TZID=Asia/Kolkata:${dtend}`,
-          `SUMMARY:${className}`,
-          `DESCRIPTION:${description.replace(/\n/g,'\\n').replace(/,/g,'\\,')}`,
-          `LOCATION:${location.replace(/,/g,'\\,')}`,
-          'END:VEVENT'
-        ].join('\r\n') + '\r\n';
-        count++;
-      }
-      const ics = icsHeader + icsBody + 'END:VCALENDAR';
-      if (count === 0) { alert('No classes found for selected subjects'); return; }
-      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'class_schedule.ics';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(a.href);
-      alert('Generated ICS with ' + count + ' events');
-    }
-
-    // ---------------- Google Sync (kept robust, unchanged) ----------------
-    // Basic token client init + wrappers. Keep CLIENT_ID replaced before testing.
-    function initTokenClient() {
-      if (!window.google || !google.accounts || !google.accounts.oauth2) return;
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPE,
-        callback: (resp) => {
-          tokenResponse = resp;
-          if (pendingSyncFunction) { const fn = pendingSyncFunction; pendingSyncFunction = null; fn(); }
-        }
-      });
-    }
-    function requestGoogleToken() {
-      if (!tokenClient) initTokenClient();
-      tokenClient.requestAccessToken({ prompt: 'consent' });
-    }
-    async function gcalFetch(url, method='GET', body=null) {
-      if (!tokenResponse || !tokenResponse.access_token) throw new Error('No access token');
-      const headers = { Authorization: 'Bearer ' + tokenResponse.access_token };
-      const opts = { method, headers };
-      if (body) { headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-      const r = await fetch(url, opts);
-      if (!r.ok) { const text = await r.text(); throw new Error('GCal API ' + r.status + ': ' + text); }
-      if (r.status === 204) return {};
-      return await r.json();
-    }
-
-    // helper row->event (for sync)
-    function rowToEvent(row, rowIndex) {
-      const rawDate = row[0], rawTime = row[1];
-      const subjectCandidates = [row[2], row[9], row[10], row[11], row[3]];
-      let className = null;
-      for (const c of subjectCandidates) if (!className && c && String(c).trim()) className = String(c).trim();
-      if (!rawDate || !rawTime || !className) return null;
-      const dateObj = parseDate(rawDate);
-      if (!dateObj) return null;
-      const timeParts = String(rawTime).split(/[-–—\u2013\u2014]|to/i).map(s=>s.trim()).filter(Boolean);
-      if (timeParts.length < 2) return null;
-      const startT = parseTimeString(timeParts[0]), endT = parseTimeString(timeParts[1]);
-      if (!startT || !endT) return null;
-      const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), startT.hours, startT.minutes);
-      const endDate   = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), endT.hours, endT.minutes);
-      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return null;
-      // stable external id
-      let stable = null;
-      for (const cell of row) if (typeof cell === 'string' && /^row\d+/i.test(cell.trim())) { stable = cell.trim(); break; }
-      const externalId = stable ? stable : `r${rowIndex}-${className.replace(/\s+/g,'_').replace(/[^\w\-]/g,'').slice(0,30)}`;
-      return {
-        externalId,
-        summary: className,
-        description: `Professor: ${row[6] ? row[6] : 'N/A'}`,
-        location: (row[4] || '').toString(),
-        startRfc3339: toRFC3339_Kolkata(startDate),
-        endRfc3339: toRFC3339_Kolkata(endDate)
-      };
-    }
-
-    // wrappers for create/update/list/delete remote events — same approach as earlier guidance
-    async function listMyEvents(timeMin, timeMax, pageToken=null) {
-      const params = new URLSearchParams({ singleEvents:'true', maxResults:'2500', orderBy:'startTime' });
-      if (timeMin) params.set('timeMin', timeMin);
-      if (timeMax) params.set('timeMax', timeMax);
-      params.set('privateExtendedProperty', encodeURIComponent('studentdashboard_owner=true'));
-      if (pageToken) params.set('pageToken', pageToken);
-      return await gcalFetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?' + params.toString(), 'GET');
-    }
-    async function findEventByExternalId(externalId) {
-      const param = encodeURIComponent(`studentdashboard_id=${externalId}`);
-      const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?privateExtendedProperty=${param}&singleEvents=true&maxResults=1`;
-      const res = await gcalFetch(url,'GET');
-      return (res.items && res.items.length) ? res.items[0] : null;
-    }
-    async function createEventOnGoogle(event) {
-      const body = { summary:event.summary, description:event.description||'', location:event.location||'', start:{dateTime:event.startRfc3339}, end:{dateTime:event.endRfc3339}, extendedProperties:{ private:{ studentdashboard_id:event.externalId, studentdashboard_owner:'true' } } };
-      return await gcalFetch('https://www.googleapis.com/calendar/v3/calendars/primary/events','POST',body);
-    }
-    async function updateEventOnGoogle(eventId, event) {
-      const body = { summary:event.summary, description:event.description||'', location:event.location||'', start:{dateTime:event.startRfc3339}, end:{dateTime:event.endRfc3339}, extendedProperties:{ private:{ studentdashboard_id:event.externalId, studentdashboard_owner:'true' } } };
-      return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,'PATCH',body);
-    }
-    async function deleteEventOnGoogle(eventId) { return await gcalFetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,'DELETE'); }
-
-    async function syncAllEventsToGoogle() {
-      try {
-        if (!tokenResponse || !tokenResponse.access_token) {
-          pendingSyncFunction = syncAllEventsToGoogle;
-          requestGoogleToken();
-          return;
-        }
-        // build local events
-        const localEvents = [];
-        for (let i=1;i<allSheetData.length;i++){
-          const ev = rowToEvent(allSheetData[i], i);
-          if (!ev) continue;
-          if (enrolledClasses.length > 0) {
-            const cn = ev.summary.toLowerCase();
-            if (!enrolledClasses.some(s => cn.includes(s.toLowerCase()))) continue;
-          }
-          localEvents.push(ev);
-        }
-        if (localEvents.length === 0) { alert('No events to sync'); return; }
-        const minTime = localEvents.map(e => e.startRfc3339).reduce((a,b)=> a<b?a:b);
-        const maxTime = localEvents.map(e => e.endRfc3339).reduce((a,b)=> a>b?a:b);
-        // load remote events
-        let remoteEvents = [], pageToken = null;
-        do {
-          const res = await listMyEvents(minTime, maxTime, pageToken);
-          if (res.items && res.items.length) remoteEvents = remoteEvents.concat(res.items);
-          pageToken = res.nextPageToken || null;
-        } while (pageToken);
-        const remoteMap = {};
-        remoteEvents.forEach(ev => {
-          const ext = ev.extendedProperties && ev.extendedProperties.private && ev.extendedProperties.private.studentdashboard_id;
-          if (ext) remoteMap[ext] = ev;
-        });
-        const processed = new Set();
-        for (const localEvent of localEvents) {
-          const existing = remoteMap[localEvent.externalId];
-          if (existing) {
-            await updateEventOnGoogle(existing.id, localEvent);
-          } else {
-            await createEventOnGoogle(localEvent);
-          }
-          processed.add(localEvent.externalId);
-          await new Promise(r => setTimeout(r, 120));
-        }
-        // delete remote leftovers
-        for (const ext in remoteMap) {
-          if (!processed.has(ext)) {
-            await deleteEventOnGoogle(remoteMap[ext].id);
-            await new Promise(r => setTimeout(r, 80));
-          }
-        }
-        alert('Sync completed');
-      } catch (err) {
-        console.error('Sync error', err);
-        alert('Sync failed: ' + (err.message || err));
-      }
-    }
-
-    // ---------------- wiring ----------------
-    refreshBtn.addEventListener('click', refreshData);
-    downloadBtn.addEventListener('click', generateMonthlyICS);
-    syncBtn.addEventListener('click', syncAllEventsToGoogle);
-
-    // init google token client once google lib is ready
-    const glInt = setInterval(() => {
-      if (window.google && google.accounts && google.accounts.oauth2) {
-        clearInterval(glInt);
-        initTokenClient();
-      }
-    }, 250);
-
-    // initial load
-    refreshData();
-
-    // expose requestGoogleToken globally for quick manual test (optional)
-    window.requestGoogleToken = requestGoogleToken;
-
-  })();
-  </script>
+    </script>
 </body>
 </html>
