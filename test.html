@@ -764,15 +764,16 @@
             }
 
             function setupSubjectSearch(inputId, resultsId, tagsId, targetArray, isUser) {
-                const searchInput = document.getElementById(inputId), resultsContainer = document.getElementById(resultsId), tagsContainer = document.getElementById(tagsId);
-                const renderTags = () => { tagsContainer.innerHTML = targetArray.map(subject => `<div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm"><span>${subject}</span><button class="font-bold remove-tag-btn" data-subject="${subject}" data-target="${tagsId}">x</button></div>`).join(''); };
-                searchInput.addEventListener('input', () => {
-                    const query = searchInput.value.toLowerCase();
-                    if (!query) { resultsContainer.classList.add('hidden'); return; }
-                    const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !targetArray.includes(c));
-                    resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
-                    resultsContainer.classList.toggle('hidden', filtered.length === 0);
-                });
+    const searchInput = document.getElementById(inputId), resultsContainer = document.getElementById(resultsId), tagsContainer = document.getElementById(tagsId);
+    const renderTags = () => { tagsContainer.innerHTML = targetArray.map(subject => `<div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm"><span>${subject}</span><button class="font-bold remove-tag-btn" data-subject="${subject}" data-target="${tagsId}">x</button></div>`).join(''); };
+    
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.toLowerCase();
+        if (!query) { resultsContainer.classList.add('hidden'); return; }
+        const filtered = allClasses.filter(c => c.toLowerCase() === query && !targetArray.includes(c));
+        resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
+        resultsContainer.classList.toggle('hidden', filtered.length === 0);
+    });
                 resultsContainer.addEventListener('click', e => {
                     if (e.target.dataset.subject) {
                         targetArray.push(e.target.dataset.subject);
