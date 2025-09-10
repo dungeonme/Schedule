@@ -181,12 +181,15 @@
     });
 
     // input typing -> filter
-    searchInput.addEventListener('input', (e) => {
-      const qstr = e.target.value.trim().toLowerCase();
-      if (!qstr) { resultsEl.classList.add('hidden'); resultsEl.innerHTML=''; return; }
-      const filtered = allClasses.filter(x => x.toLowerCase().includes(qstr) && !enrolledClasses.includes(x)).slice(0,50);
-      showSearchResults(filtered);
-    });
+   searchInput.addEventListener('input', () => {
+    const query = searchInput.value.toLowerCase().trim();
+    if (!query || query.length < 2) { resultsContainer.classList.add('hidden'); return; }
+    const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordBoundaryRegex = new RegExp(`\\b${escapedQuery}`, 'i');
+    const filtered = allClasses.filter(c => wordBoundaryRegex.test(c) && !targetArray.includes(c));
+    resultsContainer.innerHTML = filtered.slice(0, 8).map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer" data-subject="${c}">${c}</div>`).join('');
+    resultsContainer.classList.toggle('hidden', filtered.length === 0);
+});
 
     // hide on outside click
     document.addEventListener('click', (ev) => {
