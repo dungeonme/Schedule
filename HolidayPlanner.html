@@ -424,9 +424,16 @@
                 const container = document.getElementById('group-subject-inputs');
                 container.innerHTML = '';
                 groupSubjects = [];
+                const savedSubjects = JSON.parse(localStorage.getItem('enrolledClasses')) || [];
+                
+                // Add the saved subjects to Person 1's list
+                groupSubjects.push(savedSubjects);
+
                 for(let i=0; i < size; i++){
                     const personNum = i + 1;
-                    groupSubjects.push([]);
+                    if(i > 0){
+                        groupSubjects.push([]);
+                    }
                     
                     const card = document.createElement('div');
                     card.className = 'card';
@@ -580,7 +587,8 @@
                 fetchData();
 
                 document.getElementById('plan-solo-btn').addEventListener('click', () => {
-                    groupSubjects = [[]]; // Initialize for one person
+                    const savedSubjects = JSON.parse(localStorage.getItem('enrolledClasses')) || [];
+                    groupSubjects = [savedSubjects];
                     const soloContainer = soloPlannerDiv.querySelector('.card');
                     setupSubjectSearch(soloContainer, groupSubjects[0]);
                     showView('solo');
