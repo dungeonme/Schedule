@@ -570,11 +570,11 @@
                 container.innerHTML = tableHtml;
             }
             function filterAndSortClasses(data, targetDate) {
-                return data.filter(row => {
+             return data.filter(row => {
                     const classDate = parseDate(row[0]);
                     if (!classDate || !row[2]) return false;
                     const className = parseClassInfo(row[2]).class.toLowerCase();
-                    return isSameDay(classDate, targetDate) && enrolledClasses.some(s => className.includes(s.toLowerCase()));
+                    return isSameDay(classDate, targetDate) && enrolledClasses.some(s => className === s.toLowerCase());
                 }).map(row => ({ date: row[0], time: row[1], class: parseClassInfo(row[2]).class })).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
             }
 
@@ -885,3 +885,4 @@
     </script>
 </body>
 </html>
+
