@@ -891,65 +891,6 @@ function setupSubjectSearch(inputId, resultsId, tagsId, targetArray, isUser) {
             initialize();
         });
     </script>
-    <!-- OneSignal SDK -->
-<script src="https://cdn.onesignal.com/sdks/OneSignalSDK.js" async></script>
-
-<script>
-  window.OneSignal = window.OneSignal || [];
-  OneSignal.push(function() {
-    OneSignal.init({
-      appId: "b27663c6-777d-4950-a3be-94c9bf3d9366", // <- replace with your app id
-      notifyButton: { enable: false },
-      allowLocalhostAsSecureOrigin: true
-    });
-  });
-
-  // Get enrolled classes from localStorage or your page variable
-  function getEnrolledClasses() {
-    try {
-      const stored = localStorage.getItem('enrolledClasses');
-      if (stored) {
-        const arr = JSON.parse(stored);
-        if (Array.isArray(arr) && arr.length) return arr;
-      }
-    } catch (e) {}
-    if (window.enrolledClasses && Array.isArray(window.enrolledClasses)) return window.enrolledClasses;
-    return [];
-  }
-
-  async function registerAndTagUser() {
-    OneSignal.push(async function() {
-      // show permission prompt
-      await OneSignal.showNativePrompt();
-      const isSubscribed = await OneSignal.isPushNotificationsEnabled();
-      if (!isSubscribed) {
-        console.log('User did not subscribe or denied permission');
-        alert('You denied notifications. You can enable them from browser settings later.');
-        return;
-      }
-      const enrolled = getEnrolledClasses(); // e.g. ['CS101','MATH201']
-      // set comma-separated "subjects" tag for personalization
-      await OneSignal.sendTag('subjects', enrolled.join(','));
-      // optional: tag the schedule page or other metadata
-      await OneSignal.sendTag('schedule_page', location.pathname);
-      OneSignal.getUserId(function(playerId) {
-        console.log('OneSignal player id:', playerId);
-      });
-      alert('Notifications enabled — you’ll receive a daily summary.');
-    });
-  }
-
-  // Add a floating CTA if no button exists on page
-  (function addEnableButtonIfNeeded(){
-    if (document.getElementById('enablePushBtn')) return;
-    const btn = document.createElement('button');
-    btn.id = 'enablePushBtn';
-    btn.textContent = 'Enable daily reminders';
-    btn.style = 'position:fixed;bottom:16px;right:16px;padding:10px 14px;border-radius:6px;background:#1a73e8;color:#fff;border:none;cursor:pointer;z-index:9999';
-    btn.addEventListener('click', registerAndTagUser);
-    document.body.appendChild(btn);
-  })();
-</script>
-
 </body>
 </html>
+
