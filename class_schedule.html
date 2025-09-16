@@ -690,7 +690,7 @@
                         calendarHtml += `<div class="${dayClass}" data-date="${dateKey}" title="${title}">${date.getDate()}</div>`;
                         date.setDate(date.getDate() + 1);
                     }
-                    calendarHtml += `</div></div>`;
+                    html += `</div></div>`;
                 }
                 let bunkListHtml = '';
                 const bunkDays = Object.entries(dailyStatuses).filter(([_, s]) => s.type === 'bunk').map(([d, s]) => ({ date: new Date(d + 'T00:00:00'), ...s })).sort((a, b) => a.date - b.date);
