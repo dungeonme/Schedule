@@ -672,7 +672,7 @@
                 for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
                     const date = new Date(termStartDate.getFullYear(), month, 1);
                     calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })}</h4><div class="calendar-grid">`;
-                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day calendar-day-header">${day}</div>`);
+                    'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => html += `<div class="calendar-day calendar-day-header">${day}</div>`);
                     for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
                     while (date.getMonth() === month) {
                         const dateKey = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
