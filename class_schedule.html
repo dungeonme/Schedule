@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Class Schedule</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -322,7 +322,26 @@
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 3000);
             }
-                        function parseDate(dateString) {
+
+            // --- Robust time extraction: returns minutes since midnight for the start time in a range string.
+            // Handles: "9:00AM-10:30AM", "10:45 AM - 12:15 PM", "3:0PM-4:30PM", "3PM-4:30PM", "15:00-16:30"
+            function startMinutesFromRange(rangeStr) {
+              if (!rangeStr || typeof rangeStr !== 'string') return 24 * 60 + 1;
+              // Look for the first time token: hh[:mm] [AM|PM]  OR  HH:MM (24-hour)
+              const re = /(\d{1,2})(?::(\d{1,2}))?\s*(AM|PM)?/i;
+              const m = rangeStr.match(re);
+              if (!m) return 24 * 60 + 1;
+              let hh = parseInt(m[1], 10);
+              let mm = m[2] ? parseInt(m[2], 10) : 0;
+              const ampm = (m[3] || '').toUpperCase();
+              if (!isFinite(hh) || !isFinite(mm)) return 24 * 60 + 1;
+              if (ampm === 'PM' && hh !== 12) hh += 12;
+              if (ampm === 'AM' && hh === 12) hh = 0;
+              // if no AM/PM, assume 24-hour or morning; just use hh as-is
+              return hh * 60 + mm;
+            }
+
+            function parseDate(dateString) {
                 if (!dateString) return null;
                 const parts = dateString.trim().split('/');
                 if (parts.length !== 3) return null;
@@ -363,12 +382,16 @@
             function isSameDay(d1, d2) { return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate(); }
             function parseClassInfo(s) { return { class: s ? s.trim() : 'Unnamed Class' }; }
             
+            // More tolerant parseTime: accepts 1- or 2-digit minutes, optional AM/PM
             function parseTime(timeStr) {
                 if (!timeStr) return { hours: NaN, minutes: NaN };
-                const parts = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+                const parts = timeStr.match(/(\d{1,2})(?::(\d{1,2}))?\s*(AM|PM)?/i);
                 if (!parts) return { hours: NaN, minutes: NaN };
-                let hours = parseInt(parts[1], 10), minutes = parseInt(parts[2], 10), modifier = parts[3];
-                if (modifier) { if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12; if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0; }
+                let hours = parseInt(parts[1], 10), minutes = parts[2] ? parseInt(parts[2], 10) : 0, modifier = parts[3];
+                if (modifier) {
+                    if (modifier.toUpperCase() === 'PM' && hours < 12) hours += 12;
+                    if (modifier.toUpperCase() === 'AM' && hours === 12) hours = 0;
+                }
                 return { hours, minutes };
             }
             
@@ -509,11 +532,20 @@
             function saveUserPreferences(classesToSave) { try { localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave)); } catch (e) { console.error("LS Save Error:", e); } }
             function fetchUserPreferences() { try { const d = localStorage.getItem('enrolledClasses'); return d ? JSON.parse(d) : null; } catch (e) { console.error("LS Fetch Error:", e); return null; } }
 
+            // Render classes - always ensure chronological order based on start time
             function renderClasses(classes, containerId) {
                 const container = document.getElementById(containerId);
                 if (!container) return;
                 if (classes.length === 0) { container.innerHTML = '<p class="text-gray-500 text-center py-4">🎉 No classes scheduled!</p>'; return; }
-                container.innerHTML = classes.map(cls => `<div class="class-card"><div><p class="font-bold text-lg">${cls.class}</p><p class="opacity-90">🕒 ${cls.time || 'N/A'}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn" title="Add to Google Calendar">🗓️</a></div>`).join('');
+
+                // Sort classes by start time robustly using startMinutesFromRange
+                classes.sort((a, b) => {
+                  const ta = startMinutesFromRange(a.time || a[1] || '');
+                  const tb = startMinutesFromRange(b.time || b[1] || '');
+                  return ta - tb;
+                });
+
+                container.innerHTML = classes.map(cls => `<div class="class-card"><div><p class="font-bold text-lg">${cls.class}</p><p class="opacity-90">🕒 ${cls.time || (cls[1] || 'N/A')}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn" title="Add to Google Calendar">🗓️</a></div>`).join('');
             }
             
             function renderUpcomingView(viewType, isRefresh = false) {
@@ -544,7 +576,7 @@
                     if (classes.length > 0) {
                         content += `<div class="mb-4">
                             <h3 class="font-bold border-b pb-1 mb-2">${targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
-                            ${classes.map(cls => `<div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400"><div><p class="font-bold">${cls.class}</p><p class="text-sm">🕒 ${cls.time || 'N/A'}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn !bg-gray-200" title="Add to Google Calendar">🗓️</a></div>`).join('')}
+                            ${classes.map(cls => `<div class="class-card !bg-white !text-gray-800 border-l-4 border-blue-400"><div><p class="font-bold">${cls.class}</p><p class="text-sm">🕒 ${cls.time || (cls[1] || 'N/A')}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn !bg-gray-200" title="Add to Google Calendar">🗓️</a></div>`).join('')}
                             </div>`;
                     }
                 }
@@ -561,12 +593,13 @@
                         const classNameFromSheet = parseClassInfo(row[2]).class;
                         return classNameFromSheet.toLowerCase() === subject.toLowerCase() && classDate >= today;
                     }).sort((a, b) => {
+                        // sort by date first
                         const dateA = parseDate(a[0]), dateB = parseDate(b[0]);
                         if (dateA - dateB !== 0) return dateA - dateB;
-                        const timeA = parseTime((a[1] || '').split('-')[0].trim()), timeB = parseTime((b[1] || '').split('-')[0].trim());
-                        if (isNaN(timeA.hours) || isNaN(timeB.hours)) return 0;
-                        if (timeA.hours !== timeB.hours) return timeA.hours - timeB.hours;
-                        return timeA.minutes - timeB.minutes;
+                        // same date -> sort by start minute extracted robustly
+                        const ta = startMinutesFromRange(a[1] || '');
+                        const tb = startMinutesFromRange(b[1] || '');
+                        return ta - tb;
                     }).slice(0, 20); // Get up to 20 classes
                     return { subject, upcomingClasses };
                 });
@@ -606,12 +639,10 @@
                     return isSameDay(classDate, targetDate) && enrolledClasses.some(s => className === s.toLowerCase());
                 }).map(row => ({ date: row[0], time: row[1], class: parseClassInfo(row[2]).class }))
                 .sort((a, b) => {
-                    const timeA = parseTime((a.time || '').split('-')[0].trim());
-                    const timeB = parseTime((b.time || '').split('-')[0].trim());
-                    if (timeA.hours !== timeB.hours) {
-                        return timeA.hours - timeB.hours;
-                    }
-                    return timeA.minutes - timeB.minutes;
+                    // use startMinutesFromRange for robust ordering regardless of formatting
+                    const ta = startMinutesFromRange(a.time || '');
+                    const tb = startMinutesFromRange(b.time || '');
+                    return ta - tb;
                 });
             }
 
