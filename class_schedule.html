@@ -41,7 +41,7 @@
             border-radius: 0.75rem;
             margin-bottom: 0.75rem;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border-left: 5px solid #4A90E2;
+            border-left: 5px solid transparent;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -175,6 +175,13 @@
         .completed-class {
             color: #4CAF50; /* Green color for completed classes */
             font-weight: bold;
+        }
+        .class-card.completed {
+            background-color: #E2E8F0;
+            color: #A0AEC0;
+        }
+        .class-card.current {
+            border-left: 5px solid #4A90E2;
         }
     </style>
 </head>
@@ -350,6 +357,21 @@
               if (ampm === 'AM' && hh === 12) hh = 0;
               // if no AM/PM, assume 24-hour or morning; just use hh as-is
               return hh * 60 + mm;
+            }
+            function endMinutesFromRange(rangeStr) {
+                if (!rangeStr || typeof rangeStr !== 'string') return 0;
+                const timeParts = rangeStr.split('-').map(t => t.trim());
+                if (timeParts.length < 2) return 0;
+                const re = /(\d{1,2})(?::(\d{1,2}))?\s*(AM|PM)?/i;
+                const m = timeParts[1].match(re);
+                if (!m) return 0;
+                let hh = parseInt(m[1], 10);
+                let mm = m[2] ? parseInt(m[2], 10) : 0;
+                const ampm = (m[3] || '').toUpperCase();
+                if (!isFinite(hh) || !isFinite(mm)) return 0;
+                if (ampm === 'PM' && hh !== 12) hh += 12;
+                if (ampm === 'AM' && hh === 12) hh = 0;
+                return hh * 60 + mm;
             }
 
             function parseDate(dateString) {
@@ -555,8 +577,38 @@
                   const tb = startMinutesFromRange(b.time || b[1] || '');
                   return ta - tb;
                 });
+                
+                const now = new Date();
+                const nowMinutes = now.getHours() * 60 + now.getMinutes();
+                const today = new Date();
+                
+                container.innerHTML = classes.map(cls => {
+                    const startMinutes = startMinutesFromRange(cls.time || cls[1] || '');
+                    const endMinutes = endMinutesFromRange(cls.time || cls[1] || '');
+                    let classStatus = '';
+                    let isToday = isSameDay(today, parseDate(cls.date));
+                    
+                    if (isToday) {
+                        if (nowMinutes >= startMinutes && nowMinutes <= endMinutes) {
+                            classStatus = 'current';
+                        } else if (nowMinutes < startMinutes) {
+                            classStatus = 'upcoming'; // for upcoming classes on same day
+                        } else {
+                            classStatus = 'completed'; // for past classes on same day
+                        }
+                    }
 
-                container.innerHTML = classes.map(cls => `<div class="class-card"><div><p class="font-bold text-lg">${cls.class}</p><p class="opacity-90">🕒 ${cls.time || (cls[1] || 'N/A')}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn" title="Add to Google Calendar">🗓️</a></div>`).join('');
+                    let cardClass = 'class-card';
+                    if (classStatus === 'completed') {
+                        cardClass += ' completed';
+                    } else if (classStatus === 'current') {
+                        cardClass += ' current';
+                    } else if (classStatus === 'upcoming') {
+                        cardClass += ' current'; // You want to highlight the next class too
+                    }
+
+                    return `<div class="${cardClass}"><div><p class="font-bold text-lg">${cls.class}</p><p class="opacity-90">🕒 ${cls.time || (cls[1] || 'N/A')}</p></div><a href="${createGoogleCalendarLink(cls)}" target="_blank" class="add-to-calendar-btn" title="Add to Google Calendar">🗓️</a></div>`;
+                }).join('');
             }
             
             function renderUpcomingView(viewType, isRefresh = false) {
