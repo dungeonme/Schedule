@@ -295,6 +295,7 @@
 
                 <div id="search-subject-tab" class="tab-content hidden">
                     <h2 class="card-title text-xl mb-4">📚 Your Enrolled Classes</h2>
+                    <select id="subjectFilterDropdown" class="w-full p-3 mb-4 border border-gray-300 rounded-lg"></select>
                     <div id="subjectList"></div>
                 </div>
             </div>
@@ -806,6 +807,7 @@
                     renderClasses(filterAndSortClasses(allSheetData, tomorrow), 'tomorrowClasses');
                     renderUpcomingView(activeUpcomingView, true);
                     renderSubjectList(); // Call the new function to render the subject list
+                    populateSubjectFilter(); // Call to populate the dropdown
                 } catch (error) {
                     console.error("Fetch data error:", error);
                     document.getElementById('connectionStatus').textContent = '⚠️ Connection Failed';
@@ -913,18 +915,26 @@
                     renderUpcomingDayWise(document.getElementById('upcomingClassesContainer'));
                 });
             }
+            
+            function populateSubjectFilter() {
+                const dropdown = document.getElementById('subjectFilterDropdown');
+                if (!dropdown) return;
+                dropdown.innerHTML = '<option value="">All Subjects</option>' + enrolledClasses.map(subject => `<option value="${subject}">${subject}</option>`).join('');
+                dropdown.addEventListener('change', renderSubjectList);
+            }
 
             function renderSubjectList() {
                 const subjectListContainer = document.getElementById('subjectList');
+                const selectedSubject = document.getElementById('subjectFilterDropdown').value;
                 if (!subjectListContainer) return;
 
                 if (enrolledClasses.length === 0) {
                     subjectListContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No enrolled classes to display. Please add some in the "My Subjects" section.</p>';
                     return;
                 }
-
+                
                 // Filter all sheet data to get classes for enrolled subjects
-                const enrolledClassesWithDetails = allSheetData.slice(1).filter(row => {
+                let enrolledClassesWithDetails = allSheetData.slice(1).filter(row => {
                     const className = parseClassInfo(row[2]).class.toLowerCase();
                     return enrolledClasses.some(s => className === s.toLowerCase());
                 }).map(row => {
@@ -940,7 +950,11 @@
                     };
                 }).filter(cls => cls.date !== null && cls.className !== 'Unnamed Class');
 
-                // Sort the entire list chronologically by date and then time
+                if (selectedSubject) {
+                    enrolledClassesWithDetails = enrolledClassesWithDetails.filter(cls => cls.className === selectedSubject);
+                }
+
+                // Sort the filtered list chronologically by date and then time
                 enrolledClassesWithDetails.sort((a, b) => {
                     const dateComparison = a.date - b.date;
                     if (dateComparison !== 0) return dateComparison;
@@ -968,7 +982,7 @@
                 });
 
                 if (enrolledClassesWithDetails.length === 0) {
-                    subjectListContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No classes found for your selected subjects.</p>';
+                    subjectListContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No classes found for this subject.</p>';
                 } else {
                     subjectListContainer.innerHTML = html;
                 }
