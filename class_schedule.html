@@ -562,6 +562,67 @@
                 showToast(`Successfully generated calendar with ${eventCount} classes!`, 'success');
             }
 
+            function generateICSforClass(cls) {
+                const toISTFormat = (date) => {
+                    if (!date || isNaN(date.getTime())) return '';
+                    const pad = (num) => (num < 10 ? '0' : '') + num;
+                    return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}00`;
+                };
+
+                const classDate = cls.date;
+                if (!classDate || !cls.time) return;
+
+                const timeParts = cls.time.split('-').map(t => t.trim());
+                if (timeParts.length < 2) return;
+
+                const { hours: startHours, minutes: startMinutes } = parseTime(timeParts[0]);
+                const { hours: endHours, minutes: endMinutes } = parseTime(timeParts[1]);
+
+                if (isNaN(startHours) || isNaN(endHours)) return;
+                
+                const startDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), startHours, startMinutes);
+                const endDate = new Date(classDate.getFullYear(), classDate.getMonth(), classDate.getDate(), endHours, endMinutes);
+
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return;
+
+                const dateToYMD = (d) => d.getFullYear() + ('0' + (d.getMonth() + 1)).slice(-2) + ('0' + d.getDate()).slice(-2);
+                const uid = `${dateToYMD(classDate)}-${cls.className.replace(/\s+/g, '')}@studentdashboard.com`;
+
+                let icsString = [
+                    'BEGIN:VCALENDAR',
+                    'VERSION:2.0',
+                    'PRODID:-//StudentDashboard//AkshaySharma//EN',
+                    'CALSCALE:GREGORIAN',
+                    'BEGIN:VTIMEZONE',
+                    'TZID:Asia/Kolkata',
+                    'BEGIN:STANDARD',
+                    'DTSTART:19700101T000000',
+                    'TZOFFSETFROM:+0530',
+                    'TZOFFSETTO:+0530',
+                    'TZNAME:IST',
+                    'END:STANDARD',
+                    'END:VTIMEZONE',
+                    'BEGIN:VEVENT',
+                    `DTSTAMP:${new Date().toISOString().replace(/[-:.]/g, '').slice(0, -4) + 'Z'}`,
+                    `UID:${uid}`,
+                    `DTSTART;TZID=Asia/Kolkata:${toISTFormat(startDate)}`,
+                    `DTEND;TZID=Asia/Kolkata:${toISTFormat(endDate)}`,
+                    `SUMMARY:${cls.className}`,
+                    `LOCATION:${cls.location || 'Not specified'}`,
+                    'END:VEVENT',
+                    'END:VCALENDAR'
+                ].join('\r\n');
+
+                const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `${cls.className.replace(/\s+/g, '')}_${dateToYMD(classDate)}.ics`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(link.href);
+                showToast(`Successfully generated calendar file for ${cls.className}!`, 'success');
+            }
             function saveUserPreferences(classesToSave) { try { localStorage.setItem('enrolledClasses', JSON.stringify(classesToSave)); } catch (e) { console.error("LS Save Error:", e); } }
             function fetchUserPreferences() { try { const d = localStorage.getItem('enrolledClasses'); return d ? JSON.parse(d) : null; } catch (e) { console.error("LS Fetch Error:", e); return null; } }
 
@@ -1018,6 +1079,7 @@
                     const completedClass = cls.isCompleted ? 'opacity-50 line-through' : '';
                     const timeString = cls.time || 'N/A';
                     const locationString = cls.location || 'N/A';
+                    const classId = `class-${index}`;
 
                     html += `<div class="bg-gray-100 p-4 rounded-lg mb-2 ${completedClass}">
                                 <div class="font-bold text-lg">Class ${index + 1}: ${cls.className}</div>
@@ -1030,6 +1092,7 @@
                                 <div class="text-sm text-gray-700">
                                     Location: ${locationString}
                                 </div>
+                                <button class="btn !bg-green-500 hover:!bg-green-600 mt-2 text-sm add-ics-btn" data-class-id="${classId}">Add to Calendar</button>
                             </div>`;
                 });
 
@@ -1038,6 +1101,17 @@
                 } else {
                     subjectListContainer.innerHTML = html;
                 }
+
+                document.querySelectorAll('.add-ics-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const classId = e.target.dataset.classId;
+                        const classIndex = parseInt(classId.split('-')[1]);
+                        const classData = enrolledClassesWithDetails[classIndex];
+                        if (classData) {
+                            generateICSforClass(classData);
+                        }
+                    });
+                });
             }
 
             function initialize() {
