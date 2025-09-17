@@ -322,14 +322,43 @@
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 3000);
             }
-            function parseDate(dateString) {
+                        function parseDate(dateString) {
                 if (!dateString) return null;
                 const parts = dateString.trim().split('/');
-                if (parts.length === 3) {
-                    const [month, day, year] = parts.map(p => parseInt(p, 10));
-                    if (!isNaN(month) && !isNaN(day) && !isNaN(year)) return new Date(year < 100 ? 2000 + year : year, month - 1, day);
+                if (parts.length !== 3) return null;
+
+                // Parse integers safely
+                let p1 = parseInt(parts[0], 10);
+                let p2 = parseInt(parts[1], 10);
+                let p3 = parseInt(parts[2], 10);
+                if (isNaN(p1) || isNaN(p2) || isNaN(p3)) return null;
+
+                // Normalize year: if 2-digit year assume 2000+
+                let year = p3;
+                if (year < 100) year = 2000 + year;
+
+                // Detect whether the sheet used dd/mm/yyyy or mm/dd/yyyy.
+                // If first part > 12 it's almost certainly the day (dd/mm), so swap.
+                let month = p1;
+                let day = p2;
+                if (p1 > 12 && p2 <= 31) {
+                    // input was day/month/year -> swap to month/day for Date()
+                    month = p2;
+                    day = p1;
                 }
-                return null;
+                // Extra guard: if second part > 12 and first <= 12, assume mm/dd input is wrong and swap
+                else if (p2 > 12 && p1 <= 31) {
+                    month = p1;
+                    day = p2;
+                }
+
+                // final validation
+                if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+                // Create local Date at midnight to avoid timezone offsets
+                const dt = new Date(year, month - 1, day);
+                dt.setHours(0, 0, 0, 0);
+                return dt;
             }
             function isSameDay(d1, d2) { return d1 && d2 && d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate(); }
             function parseClassInfo(s) { return { class: s ? s.trim() : 'Unnamed Class' }; }
