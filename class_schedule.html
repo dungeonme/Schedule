@@ -172,6 +172,10 @@
             width: 150px; /* Adjust as needed */
             white-space: normal;
         }
+        .completed-class {
+            color: #4CAF50; /* Green color for completed classes */
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="bg-gray-50 flex flex-col min-h-screen">
@@ -259,6 +263,7 @@
                     <button id="my-calendar-tab-btn" class="tab-btn active" data-tab="my-calendar">My Calendar</button>
                     <button id="search-date-tab-btn" class="tab-btn" data-tab="search-date">Search by Date</button>
                     <button id="friend-match-tab-btn" class="tab-btn" data-tab="friend-match">Friend Match</button>
+                    <button id="search-subject-tab-btn" class="tab-btn" data-tab="search-subject">Search by Subject</button>
                 </div>
 
                 <div id="my-calendar-tab" class="tab-content">
@@ -286,6 +291,11 @@
                     <div id="friendSelectedTagsContainer" class="flex flex-wrap gap-2 mb-4"></div>
                     <button id="compareSchedulesBtn" class="btn w-full !bg-purple-500 hover:!bg-purple-600">Generate Visual Calendar</button>
                     <div id="comparisonResults" class="mt-4"></div>
+                </div>
+
+                <div id="search-subject-tab" class="tab-content hidden">
+                    <h2 class="card-title text-xl mb-4">📚 Your Enrolled Classes</h2>
+                    <div id="subjectList"></div>
                 </div>
             </div>
              <div class="text-center">
@@ -731,9 +741,9 @@
                 let calendarHtml = `<div class="flex justify-center flex-wrap gap-4 mt-4 text-xs"><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Free</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-yellow-200 mr-2"></span> Bunkable</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy</div><div class="flex items-center"><span class="w-4 h-4 rounded-full bg-gray-200 mr-2"></span> Outside Term</div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
                 for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
                     const date = new Date(termStartDate.getFullYear(), month, 1);
-                    calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })}</h4><div class="calendar-grid">`;
+                    html += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })}</h4><div class="calendar-grid">`;
                     'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => html += `<div class="calendar-day calendar-day-header">${day}</div>`);
-                    for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
+                    for (let i = 0; i < date.getDay(); i++) html += `<div></div>`;
                     while (date.getMonth() === month) {
                         const dateKey = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
                         const status = dailyStatuses[dateKey] || { type: 'outside' };
@@ -795,6 +805,7 @@
                     renderClasses(filterAndSortClasses(allSheetData, today), 'todayClasses');
                     renderClasses(filterAndSortClasses(allSheetData, tomorrow), 'tomorrowClasses');
                     renderUpcomingView(activeUpcomingView, true);
+                    renderSubjectList(); // Call the new function to render the subject list
                 } catch (error) {
                     console.error("Fetch data error:", error);
                     document.getElementById('connectionStatus').textContent = '⚠️ Connection Failed';
@@ -828,7 +839,7 @@
                 generateMyCalendar(); // Call to generate calendar by default
             }
 
-function setupSubjectSearch(inputId, resultsId, tagsId, targetArray, isUser) {
+            function setupSubjectSearch(inputId, resultsId, tagsId, targetArray, isUser) {
                 const searchInput = document.getElementById(inputId), resultsContainer = document.getElementById(resultsId), tagsContainer = document.getElementById(tagsId);
                 const renderTags = () => { tagsContainer.innerHTML = targetArray.map(subject => `<div class="bg-blue-500 text-white px-3 py-1 rounded-full flex items-center gap-2 text-sm"><span>${subject}</span><button class="font-bold remove-tag-btn" data-subject="${subject}" data-target="${tagsId}">x</button></div>`).join(''); };
                 searchInput.addEventListener('input', () => {
@@ -901,6 +912,66 @@ function setupSubjectSearch(inputId, resultsId, tagsId, targetArray, isUser) {
                     activeDayRange = (range === 'term') ? 'term' : parseInt(range, 10);
                     renderUpcomingDayWise(document.getElementById('upcomingClassesContainer'));
                 });
+            }
+
+            function renderSubjectList() {
+                const subjectListContainer = document.getElementById('subjectList');
+                if (!subjectListContainer) return;
+
+                if (enrolledClasses.length === 0) {
+                    subjectListContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No enrolled classes to display. Please add some in the "My Subjects" section.</p>';
+                    return;
+                }
+
+                // Filter all sheet data to get classes for enrolled subjects
+                const enrolledClassesWithDetails = allSheetData.slice(1).filter(row => {
+                    const className = parseClassInfo(row[2]).class.toLowerCase();
+                    return enrolledClasses.some(s => className === s.toLowerCase());
+                }).map(row => {
+                    const classDate = parseDate(row[0]);
+                    const timeString = row[1];
+                    const location = row[3];
+                    return {
+                        date: classDate,
+                        className: parseClassInfo(row[2]).class,
+                        time: timeString,
+                        location: location,
+                        isCompleted: classDate && classDate < new Date()
+                    };
+                }).filter(cls => cls.date !== null && cls.className !== 'Unnamed Class');
+
+                // Sort the entire list chronologically by date and then time
+                enrolledClassesWithDetails.sort((a, b) => {
+                    const dateComparison = a.date - b.date;
+                    if (dateComparison !== 0) return dateComparison;
+                    return startMinutesFromRange(a.time) - startMinutesFromRange(b.time);
+                });
+
+                let html = '';
+                enrolledClassesWithDetails.forEach((cls, index) => {
+                    const completedClass = cls.isCompleted ? 'opacity-50 line-through' : '';
+                    const timeString = cls.time || 'N/A';
+                    const locationString = cls.location || 'N/A';
+
+                    html += `<div class="bg-gray-100 p-4 rounded-lg mb-2 ${completedClass}">
+                                <div class="font-bold text-lg">Class ${index + 1}: ${cls.className}</div>
+                                <div class="text-sm text-gray-700">
+                                    Date: ${cls.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                                <div class="text-sm text-gray-700">
+                                    Time: ${timeString}
+                                </div>
+                                <div class="text-sm text-gray-700">
+                                    Location: ${locationString}
+                                </div>
+                            </div>`;
+                });
+
+                if (enrolledClassesWithDetails.length === 0) {
+                    subjectListContainer.innerHTML = '<p class="text-gray-500 text-center py-4">No classes found for your selected subjects.</p>';
+                } else {
+                    subjectListContainer.innerHTML = html;
+                }
             }
 
             function initialize() {
