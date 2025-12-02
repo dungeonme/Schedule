@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DRYFN2F2WR"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-DRYFN2F2WR"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
@@ -226,14 +226,38 @@
                 setTimeout(() => toast.remove(), 3000);
             }
 
+            // ROBUST PARSE DATE FUNCTION (From Class Schedule Code)
             function parseDate(dateString) {
                 if (!dateString) return null;
                 const parts = dateString.trim().split('/');
-                if (parts.length === 3) {
-                    const [month, day, year] = parts.map(p => parseInt(p, 10));
-                    if (!isNaN(month) && !isNaN(day) && !isNaN(year)) return new Date(year < 100 ? 2000 + year : year, month - 1, day);
+                if (parts.length !== 3) return null;
+
+                let p1 = parseInt(parts[0], 10);
+                let p2 = parseInt(parts[1], 10);
+                let p3 = parseInt(parts[2], 10);
+                if (isNaN(p1) || isNaN(p2) || isNaN(p3)) return null;
+
+                let year = p3;
+                if (year < 100) year = 2000 + year;
+
+                let month = p1;
+                let day = p2;
+                
+                // Smart swapping logic
+                if (p1 > 12 && p2 <= 31) {
+                    month = p2;
+                    day = p1;
                 }
-                return null;
+                else if (p2 > 12 && p1 <= 31) {
+                    month = p1;
+                    day = p2;
+                }
+
+                if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+
+                const dt = new Date(year, month - 1, day);
+                dt.setHours(0, 0, 0, 0);
+                return dt;
             }
 
             function parseClassInfo(s) { return { class: s ? s.trim() : 'Unnamed Class' }; }
@@ -250,6 +274,7 @@
                     const lastUpdatedDate = allSheetData[0] && allSheetData[0][6] ? `as updated on ${allSheetData[0][6]}` : 'Last updated: Not available';
                     document.getElementById('connectionStatus').textContent = `Schedule data loaded (${lastUpdatedDate})`;
                 } catch (error) {
+                    console.error('Fetch error:', error);
                     document.getElementById('connectionStatus').textContent = '⚠️ Connection Failed';
                     showToast('Could not load schedule data. Please refresh.');
                 }
@@ -296,7 +321,8 @@
                 searchInput.addEventListener('input', () => {
                     const query = searchInput.value.toLowerCase();
                     if (!query) { resultsContainer.classList.add('hidden'); return; }
-                    const filtered = allClasses.filter(c => c.toLowerCase().includes(query) && !subjectArray.includes(c));
+                    const wordRegex = new RegExp(`\\b${query}\\b`);
+                    const filtered = allClasses.filter(c => wordRegex.test(c.toLowerCase()) && !subjectArray.includes(c));
                     resultsContainer.innerHTML = filtered.map(c => `<div class="p-2 hover:bg-gray-100 cursor-pointer search-result-item" data-subject="${c}">${c}</div>`).join('');
                     resultsContainer.classList.toggle('hidden', filtered.length === 0);
                 });
@@ -330,15 +356,23 @@
                 resultsContainer.innerHTML = '<div class="loader"></div>';
                 resultsContainer.classList.remove('hidden');
 
-                const termStartDate = new Date(2025, 8, 10), termEndDate = new Date(2025, 11, 6);
+                // UPDATED DATES: Dec 1, 2025 to Mar 31, 2026
+                const termStartDate = new Date(2025, 11, 1); // Dec 1, 2025
+                const termEndDate = new Date(2026, 2, 31);   // Mar 31, 2026
+                
                 const myDailySchedule = {};
 
                 allSheetData.forEach(row => {
                     const classDate = parseDate(row[0]);
+                    // Only process rows with valid dates within range
                     if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
+                    
                     const classNameLower = parseClassInfo(row[2]).class.toLowerCase();
                     if (mySubjects.some(s => classNameLower.includes(s.toLowerCase()))) {
-                        const dateKey = classDate.toISOString().split('T')[0];
+                        // Use YYYY-MM-DD for consistency
+                        const pad = (num) => (num < 10 ? '0' : '') + num;
+                        const dateKey = `${classDate.getFullYear()}-${pad(classDate.getMonth() + 1)}-${pad(classDate.getDate())}`;
+                        
                         if (!myDailySchedule[dateKey]) myDailySchedule[dateKey] = 0;
                         myDailySchedule[dateKey]++;
                     }
@@ -348,7 +382,7 @@
 
             function renderMyCalendar(myDailySchedule, termStartDate, termEndDate) {
                 const resultsContainer = document.getElementById('myCalendarResults');
-                let html = `<h2 class="card-title text-xl mb-4">Your Term Calendar</h2>
+                let html = `<h2 class="card-title text-xl mb-4">Your Holiday Calendar</h2>
                 <div class="flex justify-center flex-wrap gap-4 mt-4 text-xs">
                     <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-green-200 mr-2"></span> Holiday</div>
                     <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-blue-200 mr-2"></span> 1 Class</div>
@@ -357,14 +391,22 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
 
-                for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
-                    const date = new Date(termStartDate.getFullYear(), month, 1);
-                    html += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })} 2025</h4><div class="calendar-grid">`;
+                // CORRECT LOOP LOGIC FOR CROSS-YEAR (Dec 2025 -> Jan 2026)
+                let iteratorDate = new Date(termStartDate.getFullYear(), termStartDate.getMonth(), 1);
+
+                while (iteratorDate <= termEndDate) {
+                    const date = new Date(iteratorDate);
+                    const currentMonthIndex = date.getMonth();
+
+                    // Correct header showing Month + Year
+                    html += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long', year: 'numeric' })}</h4><div class="calendar-grid">`;
                     'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => html += `<div class="calendar-day calendar-day-header">${day}</div>`);
                     for (let i = 0; i < date.getDay(); i++) html += `<div></div>`;
                     
-                    while (date.getMonth() === month) {
-                        const dateKey = date.toISOString().split('T')[0];
+                    while (date.getMonth() === currentMonthIndex) {
+                        const pad = (num) => (num < 10 ? '0' : '') + num;
+                        const dateKey = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+                        
                         const classCount = myDailySchedule[dateKey] || 0;
                         let dayClass = 'calendar-day', title = 'Click to see details';
 
@@ -382,6 +424,9 @@
                         date.setDate(date.getDate() + 1);
                     }
                     html += `</div></div>`;
+                    
+                    // Move to next month safely handles year rollover
+                    iteratorDate.setMonth(iteratorDate.getMonth() + 1);
                 }
                 resultsContainer.innerHTML = html + `</div>`;
             }
@@ -396,11 +441,16 @@
                  const dateSpan = document.getElementById('selected-date-span');
                  dateSpan.textContent = targetDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
                  
+                 // Reuse robust parsing for comparison
                  const classes = allSheetData.filter(row => {
                     const classDate = parseDate(row[0]);
                     if (!classDate || !row[2]) return false;
+                    
+                    const pad = (num) => (num < 10 ? '0' : '') + num;
+                    const rowDateKey = `${classDate.getFullYear()}-${pad(classDate.getMonth() + 1)}-${pad(classDate.getDate())}`;
+
                     const className = parseClassInfo(row[2]).class.toLowerCase();
-                    return classDate.toISOString().split('T')[0] === dateStr && mySubjects.some(s => className.includes(s.toLowerCase()));
+                    return rowDateKey === dateStr && mySubjects.some(s => className.includes(s.toLowerCase()));
                  }).map(row => ({ time: row[1], class: parseClassInfo(row[2]).class }))
                  .sort((a,b) => (a.time || "").localeCompare(b.time || ""));
 
@@ -460,14 +510,19 @@
                 }
 
                 resultsContainer.innerHTML = '<div class="loader"></div>';
-                const termStartDate = new Date(2025, 8, 10), termEndDate = new Date(2025, 11, 6);
+
+                // UPDATED DATES: Dec 1, 2025 to Mar 31, 2026
+                const termStartDate = new Date(2025, 11, 1);
+                const termEndDate = new Date(2026, 2, 31);
                 const dailySchedule = {}; 
 
                 allSheetData.forEach(row => {
                     const classDate = parseDate(row[0]);
                     if (!classDate || !row[2] || classDate < termStartDate || classDate > termEndDate) return;
                     
-                    const dateKey = classDate.toISOString().split('T')[0];
+                    const pad = (num) => (num < 10 ? '0' : '') + num;
+                    const dateKey = `${classDate.getFullYear()}-${pad(classDate.getMonth() + 1)}-${pad(classDate.getDate())}`;
+
                     if (!dailySchedule[dateKey]) dailySchedule[dateKey] = { totalClasses: 0, details: [] };
 
                     const className = parseClassInfo(row[2]).class;
@@ -493,14 +548,22 @@
                     <div class="flex items-center"><span class="w-4 h-4 rounded-full bg-red-200 mr-2"></span> Busy Day</div>
                 </div><div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">`;
 
-                for (let month = termStartDate.getMonth(); month <= termEndDate.getMonth(); month++) {
-                    const date = new Date(termStartDate.getFullYear(), month, 1);
-                    calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long' })} 2025</h4><div class="calendar-grid">`;
+                // CORRECT LOOP LOGIC FOR CROSS-YEAR (Dec 2025 -> Jan 2026)
+                let iteratorDate = new Date(termStartDate.getFullYear(), termStartDate.getMonth(), 1);
+
+                while (iteratorDate <= termEndDate) {
+                    const date = new Date(iteratorDate);
+                    const currentMonthIndex = date.getMonth();
+
+                    // Correct header showing Month + Year
+                    calendarHtml += `<div><h4 class="text-lg font-semibold text-center mb-2">${date.toLocaleString('default', { month: 'long', year: 'numeric' })}</h4><div class="calendar-grid">`;
                     'Sun,Mon,Tue,Wed,Thu,Fri,Sat'.split(',').forEach(day => calendarHtml += `<div class="calendar-day calendar-day-header">${day}</div>`);
                     for (let i = 0; i < date.getDay(); i++) calendarHtml += `<div></div>`;
 
-                    while (date.getMonth() === month) {
-                        const dateKey = date.toISOString().split('T')[0];
+                    while (date.getMonth() === currentMonthIndex) {
+                        const pad = (num) => (num < 10 ? '0' : '') + num;
+                        const dateKey = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+                        
                         const dayData = dailySchedule[dateKey];
                         const classCount = dayData ? dayData.totalClasses : 0;
                         let dayClass = 'calendar-day', title = 'Click to see details';
@@ -530,6 +593,7 @@
                         date.setDate(date.getDate() + 1);
                     }
                     calendarHtml += `</div></div>`;
+                    iteratorDate.setMonth(iteratorDate.getMonth() + 1);
                 }
                 
                 resultsContainer.innerHTML = calendarHtml;
@@ -549,7 +613,12 @@
 
                 allSheetData.forEach(row => {
                     const classDate = parseDate(row[0]);
-                    if (!classDate || classDate.toISOString().split('T')[0] !== dateStr || !row[1] || !row[2]) return;
+                    const pad = (num) => (num < 10 ? '0' : '') + num;
+                    // Robust check
+                    if (!classDate || !row[1] || !row[2]) return;
+                    const rowDateKey = `${classDate.getFullYear()}-${pad(classDate.getMonth() + 1)}-${pad(classDate.getDate())}`;
+
+                    if(rowDateKey !== dateStr) return;
 
                     const className = parseClassInfo(row[2]).class;
                     const classNameLower = className.toLowerCase();
