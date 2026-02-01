@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSME Governance Questionnaire</title>
+    <style>
+        :root {
+            --primary-blue: #1a365d;
+            --accent-blue: #3182ce;
+            --bg-gray: #f7fafc;
+            --white: #ffffff;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-gray);
+            color: #2d3748;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            border-bottom: 3px solid var(--primary-blue);
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .component-section {
+            margin-bottom: 40px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .component-header {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .component-header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .weight-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .question-group {
+            padding: 20px;
+        }
+
+        .question-item {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .question-item:last-child {
+            border-bottom: none;
+        }
+
+        .q-meta {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        label.main-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .options {
+            display: flex;
+            gap: 20px;
+        }
+
+        .options label {
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        button {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #2c5282;
+        }
+
+        @media (max-width: 600px) {
+            .options {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>MSME Corporate Governance Assessment</h1>
+        <p>A 20-question diagnostic to evaluate organizational health.</p>
+    </header>
+
+    <form id="governanceForm">
+        <section class="component-section">
+            <div class="component-header">
+                <h2>1. Ownership & Board Structure</h2>
+                <span class="weight-badge">Section Weight: 20</span>
+            </div>
+            <div class="question-group">
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">1. Is there documented clarity on shareholding and related-party transactions?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q1" value="5" required> Yes</label>
+                        <label><input type="radio" name="q1" value="2.5"> Partial</label>
+                        <label><input type="radio" name="q1" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">2. Does a formal succession plan exist for key leadership roles?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q2" value="5"> Yes</label>
+                        <label><input type="radio" name="q2" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">3. Is there a regular meeting cadence for the Board or Advisory body?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q3" value="5"> Yes</label>
+                        <label><input type="radio" name="q3" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">4. Are formal minutes and decision records maintained for all board meetings?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q4" value="5"> Yes</label>
+                        <label><input type="radio" name="q4" value="0"> No</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="component-section">
+            <div class="component-header">
+                <h2>2. Transparency & Disclosure</h2>
+                <span class="weight-badge">Section Weight: 20</span>
+            </div>
+            <div class="question-group">
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">5. Are statutory filings (GST, ITR, MCA) completed on time?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q5" value="5" required> Yes</label>
+                        <label><input type="radio" name="q5" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">6. Are bank and ledger reconciliations performed monthly?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q6" value="5"> Yes</label>
+                        <label><input type="radio" name="q6" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">7. Is a structured Management Information System (MIS) reviewed regularly?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q7" value="5"> Yes</label>
+                        <label><input type="radio" name="q7" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">8. Does the company proactively disclose financial health to its stakeholders?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q8" value="5"> Yes</label>
+                        <label><input type="radio" name="q8" value="0"> No</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="component-section">
+            <div class="component-header">
+                <h2>3. Internal Controls & Risk Mgmt.</h2>
+                <span class="weight-badge">Section Weight: 25</span>
+            </div>
+            <div class="question-group">
+                <div class="question-item">
+                    <span class="q-meta">Weight: 6.25 points</span>
+                    <label class="main-label">9. Is a "Maker-Checker" system implemented for financial transactions?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q9" value="6.25" required> Yes</label>
+                        <label><input type="radio" name="q9" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 6.25 points</span>
+                    <label class="main-label">10. Are IT systems secured with regular, tested data backups?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q10" value="6.25"> Yes</label>
+                        <label><input type="radio" name="q10" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 6.25 points</span>
+                    <label class="main-label">11. Does the company maintain a formal Risk Register?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q11" value="6.25"> Yes</label>
+                        <label><input type="radio" name="q11" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 6.25 points</span>
+                    <label class="main-label">12. Is insurance adequacy reviewed annually for all business assets?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q12" value="6.25"> Yes</label>
+                        <label><input type="radio" name="q12" value="0"> No</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="component-section">
+            <div class="component-header">
+                <h2>4. Ethics & Compliance</h2>
+                <span class="weight-badge">Section Weight: 15</span>
+            </div>
+            <div class="question-group">
+                <div class="question-item">
+                    <span class="q-meta">Weight: 3.75 points</span>
+                    <label class="main-label">13. Does the company have a formal Code of Conduct and POSH policy?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q13" value="3.75" required> Yes</label>
+                        <label><input type="radio" name="q13" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 3.75 points</span>
+                    <label class="main-label">14. Are AML/KYC and anti-bribery protocols strictly enforced?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q14" value="3.75"> Yes</label>
+                        <label><input type="radio" name="q14" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 3.75 points</span>
+                    <label class="main-label">15. Is there a formal mechanism for Whistleblowing and grievance handling?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q15" value="3.75"> Yes</label>
+                        <label><input type="radio" name="q15" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 3.75 points</span>
+                    <label class="main-label">16. Do external/internal audits verify compliance with local laws?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q16" value="3.75"> Yes</label>
+                        <label><input type="radio" name="q16" value="0"> No</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="component-section">
+            <div class="component-header">
+                <h2>5. Stakeholder & Employee Practices</h2>
+                <span class="weight-badge">Section Weight: 20</span>
+            </div>
+            <div class="question-group">
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">17. Are written contracts and payment disciplines maintained for vendors?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q17" value="5" required> Yes</label>
+                        <label><input type="radio" name="q17" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">18. Are Health, Safety, and Environment (HSE) standards documented?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q18" value="5"> Yes</label>
+                        <label><input type="radio" name="q18" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">19. Is there a structured employee training and feedback channel?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q19" value="5"> Yes</label>
+                        <label><input type="radio" name="q19" value="0"> No</label>
+                    </div>
+                </div>
+                <div class="question-item">
+                    <span class="q-meta">Weight: 5.0 points</span>
+                    <label class="main-label">20. Does the company engage in documented community or ESG initiatives?</label>
+                    <div class="options">
+                        <label><input type="radio" name="q20" value="5"> Yes</label>
+                        <label><input type="radio" name="q20" value="0"> No</label>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <button type="submit">Submit Assessment</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('governanceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        let totalScore = 0;
+        
+        for (let value of formData.values()) {
+            totalScore += parseFloat(value);
+        }
+
+        alert('Assessment Submitted!\n\nYour Total Weighted Score is: ' + totalScore.toFixed(2) + ' / 100');
+    });
+</script>
+
+</body>
+</html>
